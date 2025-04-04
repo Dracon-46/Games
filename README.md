@@ -23,9 +23,8 @@ Praticar desenvolvimento de jogos simples e explorar diferentes linguagens e fra
    ```bash
    cd nome-do-jogo
 4. Execute o jogo conforme a linguagem utilizada. Exemplo para Python:
-  ```bash
+     ```bash
    python jogo.py
 
-   
 📜 Licença
 Este projeto é open-source e está disponível sob a licença MIT.
