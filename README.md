@@ -17,7 +17,7 @@ Praticar desenvolvimento de jogos simples e explorar diferentes linguagens e fra
 ## 🔧 Como Jogar  
 1. Clone o repositório:  
    ```bash
-   git clone https://github.com/seu-usuario/seu-repositorio.git
+   git clone https://github.com/Dracon-46/Games.git
 
 2. Acesse a pasta do jogo desejado:
    ```bash
