@@ -10,6 +10,7 @@ def set_screen_size(width, height):
 
 pg.init()
 font = pg.font.SysFont("Arial", 40, bold=True)
+small_font = pg.font.SysFont("Arial", 30, bold=True)
 clock = pg.time.Clock()
 set_screen_size(800, 600)
 
@@ -18,12 +19,13 @@ WHITE = (255, 255, 255)
 GREEN = (0, 255, 0)
 RED = (255, 0, 0)
 BLACK = (0, 0, 0)
+GRAY = (100, 100, 100)
 
 paused = False
 score = 0
 
-def draw_text(text, x, y, color=WHITE):
-    render = font.render(text, True, color)
+def draw_text(text, x, y, color=WHITE, font_type=font):
+    render = font_type.render(text, True, color)
     rect = render.get_rect(center=(x, y))
     screen.blit(render, rect)
 
@@ -72,6 +74,32 @@ def resolution_menu():
                     set_screen_size(1280, 720)
                     running = False
 
+def main_menu():
+    running = True
+    while running:
+        screen.fill(BLACK)
+        draw_text("Snake Game", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 4)
+        start_button = pg.Rect(SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 - 50, 200, 50)
+        quit_button = pg.Rect(SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 + 50, 200, 50)
+        
+        pg.draw.rect(screen, GREEN, start_button)
+        pg.draw.rect(screen, RED, quit_button)
+        draw_text("Start", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 25)
+        draw_text("Quit", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 75)
+        
+        pg.display.flip()
+        
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                pg.quit()
+                sys.exit()
+            if event.type == pg.MOUSEBUTTONDOWN:
+                if start_button.collidepoint(event.pos):
+                    running = False
+                if quit_button.collidepoint(event.pos):
+                    pg.quit()
+                    sys.exit()
+
 def pause_menu():
     global paused
     while paused:
@@ -100,20 +128,21 @@ def pause_menu():
             if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
                 paused = False
 
-def game_over():
-    global score
+def game_over_menu(final_score):
     running = True
     while running:
         screen.fill(BLACK)
         draw_text("Game Over", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 4)
-        draw_text(f"Score: {score}", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 100)
-        restart_button = pg.Rect(SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 - 50, 200, 50)
-        quit_button = pg.Rect(SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 + 50, 200, 50)
+        draw_text(f"Final Score: {final_score}", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 3)
+        
+        restart_button = pg.Rect(SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2, 300, 50)
+        menu_button = pg.Rect(SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 + 80, 300, 50)
         
         pg.draw.rect(screen, GREEN, restart_button)
-        pg.draw.rect(screen, RED, quit_button)
-        draw_text("Restart", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 25)
-        draw_text("Quit", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 75)
+        pg.draw.rect(screen, GRAY, menu_button)
+        
+        draw_text("Restart Game", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 25, font_type=small_font)
+        draw_text("Main Menu", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 105, font_type=small_font)
         
         pg.display.flip()
         
@@ -123,11 +152,9 @@ def game_over():
                 sys.exit()
             if event.type == pg.MOUSEBUTTONDOWN:
                 if restart_button.collidepoint(event.pos):
-                    score = 0
-                    running = False
-                if quit_button.collidepoint(event.pos):
-                    pg.quit()
-                    sys.exit()
+                    return "restart"
+                if menu_button.collidepoint(event.pos):
+                    return "menu"
 
 def game_loop():
     global paused, score
@@ -155,14 +182,36 @@ def game_loop():
                     direction = (-GRID_SIZE, 0)
                 if event.key == pg.K_RIGHT and direction != (-GRID_SIZE, 0):
                     direction = (GRID_SIZE, 0)
-                if event.key == pg.K_p:
+                if event.key == pg.K_ESCAPE:
                     paused = True
                     pause_menu()
         
         new_head = [snake[0][0] + direction[0], snake[0][1] + direction[1]]
-        if new_head in snake or not (0 <= new_head[0] < SCREEN_WIDTH and 0 <= new_head[1] < SCREEN_HEIGHT):
-            game_over()
-            running = False
+        
+        # Verifica colisão com as bordas
+        if (new_head[0] < 0 or new_head[0] >= SCREEN_WIDTH or 
+            new_head[1] < 0 or new_head[1] >= SCREEN_HEIGHT):
+            action = game_over_menu(score)
+            if action == "restart":
+                score = 0
+                snake = [[100, 100]]  # Reset snake
+                apple = spawn_apple()  # New apple
+                direction = (GRID_SIZE, 0)  # Reset direction
+                continue  # Continua o jogo imediatamente
+            else:
+                return "menu"
+        
+        # Verifica colisão com o próprio corpo
+        if new_head in snake[1:]:
+            action = game_over_menu(score)
+            if action == "restart":
+                score = 0
+                snake = [[100, 100]]  # Reset snake
+                apple = spawn_apple()  # New apple
+                direction = (GRID_SIZE, 0)  # Reset direction
+                continue  # Continua o jogo imediatamente
+            else:
+                return "menu"
         
         snake.insert(0, new_head)
         if new_head == apple:
@@ -175,5 +224,10 @@ def game_loop():
         clock.tick(10)
 
 if __name__ == "__main__":
-    resolution_menu()
-    game_loop()
+    while True:
+        resolution_menu()
+        main_menu()
+        while True:  # Loop interno para reiniciar o jogo sem voltar ao menu
+            result = game_loop()
+            if result != "restart":
+                break
