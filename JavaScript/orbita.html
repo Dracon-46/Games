@@ -1,0 +1,51 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Órbita</title><link rel="stylesheet" href="style.css"></head><body>
+<header><a href="index.html">← Jogos</a><h1>🪐 Órbita</h1></header><main>
+<div class="bar"><span class="stat">Pontos <b id="sc">0</b></span><span class="stat">Recorde <b id="hi">0</b></span><button id="new" class="primary">Novo jogo</button></div>
+<canvas id="c" width="400" height="400"></canvas>
+<div class="msg" id="msg"></div>
+<p class="hint">Toque, clique ou aperte Espaço para trocar de anel (↑ sobe, ↓ desce). Pegue os cristais azuis e fuja dos espinhos vermelhos.</p>
+</main><script>
+const $=i=>document.getElementById(i),cv=$('c'),x=cv.getContext('2d'),R=[62,112,162],C=200,TAU=Math.PI*2;
+let st='idle',ring=1,pr=R[1],pa=-Math.PI/2,dirn=1,spd=1.6,gems=[],haz=[],score=0,t=0,last=0,hi=0,deadAt=-1e9,nextHaz=0;
+const stars=Array.from({length:45},()=>[Math.random()*400,Math.random()*400,Math.random()*1.2+.3]);
+try{hi=+localStorage.getItem('orbita-hi')||0}catch(e){}
+$('hi').textContent=hi;
+const adiff=(a,b)=>{const d=((a-b)%TAU+TAU)%TAU;return Math.min(d,TAU-d)};
+const far=m=>{let a;do{a=Math.random()*TAU}while(adiff(a,pa)<m);return a};
+const P=(r,a)=>[C+Math.cos(a)*r,C+Math.sin(a)*r];
+function addGem(){gems.push({ring:Math.random()*3|0,a:far(.9)})}
+function addHaz(){haz.push({ring:Math.random()*3|0,a:far(1.6),w:(Math.random()<.5?-1:1)*(.5+Math.random()*.9)})}
+function start(){ring=1;pr=R[1];pa=-Math.PI/2;dirn=1;spd=1.6;gems=[];haz=[];score=0;t=0;nextHaz=8;addGem();addGem();addHaz();addHaz();
+ st='play';$('sc').textContent=0;$('msg').textContent=''}
+function hop(d){if(st!=='play'){if(performance.now()-deadAt>500)start();return}
+ if(d){const n=ring+d;if(n<0||n>2)return;ring=n}else{if(ring+dirn<0||ring+dirn>2)dirn=-dirn;ring+=dirn}}
+function over(){st='over';deadAt=performance.now();const rec=score>hi;
+ if(rec){hi=score;try{localStorage.setItem('orbita-hi',hi)}catch(e){}$('hi').textContent=hi}
+ $('msg').textContent='💥 Fim de jogo! Pontos: '+score+(rec&&score?' — novo recorde!':'')}
+function step(dt){t+=dt;spd=Math.min(3.2,1.6+t*.02);pa+=spd*dt;
+ const d=R[ring]-pr;pr+=Math.sign(d)*Math.min(Math.abs(d),500*dt);
+ haz.forEach(h=>h.a+=h.w*(1+t*.008)*dt);
+ if(t>nextHaz&&haz.length<6){addHaz();nextHaz=t+9}
+ const[px,py]=P(pr,pa);
+ gems.forEach((g,i)=>{const[gx,gy]=P(R[g.ring],g.a);if(Math.hypot(gx-px,gy-py)<17){score++;$('sc').textContent=score;gems.splice(i,1);addGem()}});
+ if(haz.some(h=>{const[hx,hy]=P(R[h.ring],h.a);return Math.hypot(hx-px,hy-py)<15}))over()}
+function draw(now){x.clearRect(0,0,400,400);
+ x.fillStyle='#3a4262';stars.forEach(s=>{x.beginPath();x.arc(s[0],s[1],s[2],0,TAU);x.fill()});
+ x.lineWidth=2;R.forEach((r,i)=>{x.strokeStyle=i===ring&&st==='play'?'#46507a':'#2d334a';x.beginPath();x.arc(C,C,r,0,TAU);x.stroke()});
+ const g=x.createRadialGradient(C,C,2,C,C,30);g.addColorStop(0,'#fff3c4');g.addColorStop(.45,'#ffd166');g.addColorStop(1,'rgba(255,209,102,0)');
+ x.fillStyle=g;x.beginPath();x.arc(C,C,30+Math.sin(now/300)*2,0,TAU);x.fill();
+ gems.forEach(q=>{const[gx,gy]=P(R[q.ring],q.a),s=7+Math.sin(now/200+q.a)*1;x.fillStyle='#7aa2ff';x.beginPath();x.moveTo(gx,gy-s);x.lineTo(gx+s,gy);x.lineTo(gx,gy+s);x.lineTo(gx-s,gy);x.fill();
+  x.fillStyle='#cfe0ff';x.beginPath();x.arc(gx,gy,2,0,TAU);x.fill()});
+ haz.forEach(h=>{const[hx,hy]=P(R[h.ring],h.a);x.fillStyle='#ff6b81';x.beginPath();
+  for(let k=0;k<16;k++){const a=k*TAU/16+now/400*Math.sign(h.w),r=k%2?5:10;x.lineTo(hx+Math.cos(a)*r,hy+Math.sin(a)*r)}x.fill()});
+ for(let k=6;k>=0;k--){const[qx,qy]=P(pr,pa-k*.07);x.fillStyle=k?'rgba(110,231,183,'+(.35-k*.05)+')':'#6ee7b7';x.beginPath();x.arc(qx,qy,k?7-k*.6:8,0,TAU);x.fill()}
+ if(st!=='play'){x.fillStyle='rgba(8,10,16,.62)';x.fillRect(0,0,400,400);x.fillStyle='#fff';x.textAlign='center';x.font='bold 26px system-ui';
+  x.fillText(st==='over'?'Fim de jogo':'Órbita',C,185);x.font='16px system-ui';x.fillText(st==='over'?'Pontos: '+score+' · toque para jogar de novo':'Toque para começar',C,215)}}
+function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;if(st==='play')step(dt);draw(now);requestAnimationFrame(loop)}
+cv.addEventListener('pointerdown',e=>{e.preventDefault();hop(0)});
+addEventListener('keydown',e=>{if(e.repeat)return;const k=e.key;
+ if(k===' '||k==='Enter'){e.preventDefault();hop(0)}else if(k==='ArrowUp'||k==='w'||k==='W'){e.preventDefault();hop(1)}else if(k==='ArrowDown'||k==='s'||k==='S'){e.preventDefault();hop(-1)}});
+$('new').onclick=function(){this.blur();start()};
+requestAnimationFrame(loop);
+</script></body></html>
