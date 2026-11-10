@@ -1,0 +1,27 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Forca</title><link rel="stylesheet" href="style.css">
+<style>#word{font:700 clamp(22px,7vw,36px)/1.4 ui-monospace,monospace;letter-spacing:.25em;text-align:center;word-break:break-all}
+#kb{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:460px}#kb button{width:40px;height:44px;padding:0;font-weight:600}
+#kb button:disabled{opacity:.35;cursor:default}#kb .hit{background:#1f3a33;border-color:var(--acc)}#kb .miss{background:#3a1f28;border-color:var(--bad)}
+svg{stroke:var(--fg);stroke-width:4;fill:none;stroke-linecap:round}</style></head><body>
+<header><a href="index.html">← Jogos</a><h1>🔤 Forca</h1></header><main>
+<div class="bar"><span class="stat">Dica: <b id="cat"></b></span><span class="stat">Erros <b id="er">0</b>/6</span><button id="new" class="primary">Nova palavra</button></div>
+<svg width="180" height="190" viewBox="0 0 180 190"><path d="M10 185h100M40 185V10h80v20"/><g id="man">
+<circle cx="120" cy="48" r="18"/><path d="M120 66v55"/><path d="M120 80l-25 25"/><path d="M120 80l25 25"/><path d="M120 121l-22 35"/><path d="M120 121l22 35"/></g></svg>
+<div id="word"></div><div class="msg" id="msg"></div><div id="kb"></div>
+</main><script>
+const W={Animais:['ELEFANTE','GIRAFA','JACARE','TARTARUGA','PAPAGAIO','BORBOLETA','CACHORRO','GOLFINHO','FORMIGA','CAPIVARA','TAMANDUA','ONCA'],
+Frutas:['ABACAXI','MELANCIA','MORANGO','GOIABA','MARACUJA','JABUTICABA','LARANJA','BANANA','ACEROLA','PITANGA','CAJU','MANGA'],
+Países:['BRASIL','ARGENTINA','PORTUGAL','CANADA','ALEMANHA','AUSTRALIA','MEXICO','JAPAO','EGITO','NORUEGA','CHILE','ITALIA'],
+Objetos:['COMPUTADOR','GELADEIRA','GUARDA-CHUVA','TELEFONE','BICICLETA','VIOLAO','CADEIRA','TESOURA','MOCHILA','ESPELHO','RELOGIO','TECLADO'],
+Profissões:['PROGRAMADOR','BOMBEIRO','ENFERMEIRA','PROFESSOR','COZINHEIRO','DENTISTA','MOTORISTA','JORNALISTA','ENGENHEIRO','PADEIRO']};
+const $=i=>document.getElementById(i),parts=[...$('man').children];let word,used,err,done;
+function start(){const cs=Object.keys(W),c=cs[Math.random()*cs.length|0];word=W[c][Math.random()*W[c].length|0];used=new Set;err=0;done=false;$('cat').textContent=c;$('msg').textContent='';
+ $('kb').innerHTML='';for(const l of'ABCDEFGHIJKLMNOPQRSTUVWXYZ'){const b=document.createElement('button');b.textContent=l;b.onclick=()=>guess(l);$('kb').append(b)}draw()}
+function draw(){$('word').textContent=[...word].map(l=>l==='-'||used.has(l)||done?l:'_').join('');$('er').textContent=err;parts.forEach((p,i)=>p.style.display=i<err?'':'none')}
+function guess(l){if(done||used.has(l))return;used.add(l);const b=[...$('kb').children].find(b=>b.textContent===l);b.disabled=true;
+ if(word.includes(l))b.className='hit';else{b.className='miss';err++}
+ const won=[...word].every(c=>c==='-'||used.has(c));
+ if(won){done=true;$('msg').textContent='🎉 Você acertou!';$('msg').style.color='var(--acc)'}else if(err>=6){done=true;$('msg').textContent='💀 Você perdeu! A palavra era:';$('msg').style.color='var(--bad)'}draw()}
+addEventListener('keydown',e=>{const k=e.key.toUpperCase();if(/^[A-Z]$/.test(k))guess(k)});$('new').onclick=start;start();
+</script></body></html>

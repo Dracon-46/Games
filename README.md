@@ -2,10 +2,21 @@
 
 Este repositório contém jogos clássicos recriados de forma simples, como **Tetris** e **Jogo da Cobrinha**, desenvolvidos em diversas linguagens de programação. O objetivo é praticar lógica, aprender novas tecnologias e compartilhar projetos com a comunidade.  
 
-## 🚀 Jogos Disponíveis  
-- 🐍 **Snake Game** – Jogo da cobrinha clássico  
-- 🧱 **Tetris** – Versão básica do famoso jogo de blocos  
-- 🎯 [Futuros jogos...]  
+## 🚀 Jogos Disponíveis
+Jogos para navegador (pasta `JavaScript/`, HTML/CSS/JS puro, sem dependências):
+
+- 🐍 **Cobrinha**
+- 🧱 **Blocos** – peças que caem, complete linhas
+- ♞ **Xadrez** – contra o computador ou 2 jogadores
+- ⛀ **Damas** – regras brasileiras, contra o computador
+- ✊ **Jokempô**
+- ⭕ **Jogo da Velha**
+- 🃏 **Memória**
+- 💣 **Campo Minado**
+- 🔤 **Forca**
+- 🔢 **Sudoku**
+
+Para jogar localmente, abra `JavaScript/index.html` no navegador.
 
 ## 🛠️ Tecnologias Utilizadas  
 - **Linguagens:** Java, Python, C# e outras futuramente.

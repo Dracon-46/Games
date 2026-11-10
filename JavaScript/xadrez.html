@@ -1,0 +1,30 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Xadrez</title><link rel="stylesheet" href="style.css">
+<style>.board{grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr)}.board>div{min-height:0;overflow:hidden}.board>div{font-size:clamp(26px,9.5vw,48px);line-height:1}
+.l{background:#d9dfee}.d{background:#6f82b0}.w{color:#fff;text-shadow:0 0 2px #000,0 0 2px #000,0 1px 2px #000}.k{color:#14161f}
+.last{box-shadow:inset 0 0 0 100px rgba(255,209,102,.4)}.sel{box-shadow:inset 0 0 0 100px rgba(110,231,183,.6)}.chk{box-shadow:inset 0 0 0 100px rgba(255,107,129,.7)}
+.to::after{content:"";position:absolute;width:28%;height:28%;border-radius:50%;background:rgba(20,22,31,.35)}.to.cap::after{width:86%;height:86%;background:none;border:4px solid rgba(20,22,31,.35)}</style></head><body>
+<header><a href="index.html">← Jogos</a><h1>♞ Xadrez</h1></header><main>
+<div class="bar"><select id="lv"><option value="2">Fácil</option><option value="3" selected>Médio</option><option value="4">Difícil</option></select>
+<select id="side"><option value="w">Jogar de brancas</option><option value="b">Jogar de pretas</option><option value="2">2 jogadores</option></select>
+<button id="undo">Desfazer</button><button id="new" class="primary">Novo jogo</button></div>
+<div class="msg" id="msg"></div><div class="board" id="bd"></div>
+<p class="hint">Clique na peça e depois no destino. Roque e en passant valem; o peão vira dama ao chegar ao fim.</p>
+</main><script src="xadrez-engine.js"></script><script>
+const $=i=>document.getElementById(i),G={K:'♚',Q:'♛',R:'♜',B:'♝',N:'♞',P:'♟'};
+let s,hist,sel,last,over,me;
+function start(){s=Chess.start();hist=[];sel=-1;last=null;over=false;me=$('side').value;draw();if(me==='b')ai()}
+function draw(){const ms=Chess.legal(s),chk=Chess.inCheck(s,s.t),tg=sel>=0?ms.filter(m=>m.f===sel):[],flip=me==='b';
+ const pcs=s.b.filter(p=>p!==' ').length;over=!ms.length||pcs===2;
+ $('msg').textContent=!ms.length?(chk?'Xeque-mate! '+(s.t==='w'?'Pretas':'Brancas')+' vencem.':'Empate por afogamento.'):pcs===2?'Empate: só restam os reis.':(s.t==='w'?'Vez das brancas':'Vez das pretas')+(chk?' — xeque!':'');
+ $('bd').innerHTML='';for(let v=0;v<64;v++){const i=flip?63-v:v,p=s.b[i],d=document.createElement('div');
+  d.className=(((i>>3)+(i&7))%2?'d':'l')+(p===' '?'':p<'a'?' w':' k')+(last&&(last.f===i||last.t===i)?' last':'')+(i===sel?' sel':'')+(chk&&p===(s.t==='w'?'K':'k')?' chk':'')+(tg.some(m=>m.t===i)?' to'+(p!==' '?' cap':''):'');
+  if(p!==' ')d.textContent=G[p.toUpperCase()]+'︎';d.onclick=()=>click(i);$('bd').append(d)}}
+function click(i){if(over||(me!=='2'&&s.t!==me))return;const m=sel>=0&&Chess.legal(s).find(m=>m.f===sel&&m.t===i);
+ if(m){play(m);if(!over&&me!=='2')ai();return}
+ const p=s.b[i];sel=p!==' '&&(p<'a'?'w':'b')===s.t&&i!==sel?i:-1;draw()}
+function play(m){hist.push({s,last});s=Chess.make(s,m);last=m;sel=-1;draw()}
+function ai(){setTimeout(()=>{const m=Chess.best(s,+$('lv').value);if(m)play(m)},60)}
+$('undo').onclick=()=>{if(!hist.length)return;let n=me==='2'?1:s.t===me?2:1;while(n--&&hist.length){const h=hist.pop();s=h.s;last=h.last}sel=-1;draw();if(me!=='2'&&s.t!==me)ai()};
+$('new').onclick=start;$('side').onchange=start;start();
+</script></body></html>
