@@ -211,7 +211,7 @@ function step(dt,t){
         orbsGot++;score+=100+Math.floor(n/100);
         var cap=Math.floor(MAX*Math.max(.5,Math.min(1,q.value/q.max)));
         if(n<cap)spawn(Math.min(cap-n,Math.max(MAX*.035,n*.2)|0),ob.x,ob.y,.05,1.6);
-        orbs[j]=placeOrb();
+        orbs[j]=placeOrb();hud();
       }}
     if(n<40)gameOver();
   }

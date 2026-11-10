@@ -1,0 +1,212 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Túnel</title><link rel="stylesheet" href="style.css">
+<style>
+html,body{height:100%}
+body{display:flex;flex-direction:column;height:100vh;height:100dvh;min-height:0;overflow:hidden}
+main{max-width:none;width:100%;flex:1;min-height:0;padding:10px 10px 8px;gap:8px}
+.bar{gap:8px}.stat{padding:4px 12px}.bar button{padding:5px 14px}
+.stage{position:relative;flex:1;min-height:0;width:100%;border-radius:12px;overflow:hidden}
+.stage canvas{position:absolute;left:0;top:0;width:100%;height:100%;max-width:none;display:block;cursor:crosshair;background:#07080d}
+.over{position:absolute;left:0;top:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:16px;pointer-events:none;background:radial-gradient(closest-side,rgba(7,8,13,.8),rgba(7,8,13,0))}
+.over.hide{display:none}.over button{pointer-events:auto;font-size:18px;padding:10px 28px}
+.over .msg{font-size:24px;min-height:0;text-shadow:0 2px 12px #000}.over .hint{max-width:420px;color:#c3c9de;text-shadow:0 1px 8px #000}
+@media (max-width:480px){.stat{font-size:14px;padding:3px 9px}.bar button{font-size:14px}header{padding:9px 14px}.hint.foot{display:none}}
+</style></head><body data-fx="off">
+<header><a href="index.html">← Jogos</a><h1>🌀 Túnel</h1></header><main>
+<div class="bar"><span class="stat">Distância <b id="sc">0</b> m</span><span class="stat">Velocidade <b id="sp">0</b></span><span class="stat">Recorde <b id="hi">0</b> m</span><button id="novo">Novo jogo</button></div>
+<div class="stage" id="stage"><canvas id="c"></canvas>
+<div class="over" id="over"><div class="msg" id="msg">Voe pelo túnel</div>
+<p class="hint" id="sub">Passe pelas aberturas das barreiras giratórias. A velocidade só aumenta.</p>
+<button class="primary" id="go">Jogar</button></div></div>
+<p class="hint foot">Mouse para mirar, ou arraste o dedo para pilotar. No teclado: setas ou WASD.</p>
+</main>
+<script src="gfx.js"></script>
+<script>
+(function(){
+'use strict';
+var $=function(id){return document.getElementById(id)};
+var cv=$('c'),stage=$('stage');
+var gl=GFX.context(cv,{alpha:false,antialias:false,depth:false,stencil:false});
+if(!gl){GFX.noGL(stage,'sem contexto');return}
+var TAU=Math.PI*2,R=2,LIM=1.55,SPACING=18,FIRST=46,HUB=.35,HOLE_D=.9;
+var PF=[.045,.021,.037,.017],PA=[1.5,1.0,1.2,.9];
+
+/* Túnel sem raymarching: interseção analítica raio-cilindro, refinada por iteração de ponto fixo
+   para acompanhar a curva do eixo. As barreiras são planos z=const testados por raio. */
+var FS=[
+'uniform vec2 uRes;uniform float uT;uniform float uZm;uniform vec4 uPh;uniform vec2 uPos;uniform vec2 uLook;uniform float uRoll;',
+'uniform float uSpd;uniform vec4 uBar[5];uniform float uDead;uniform float uQual;',
+'const float R='+R.toFixed(1)+';const float TAU=6.2831853;',
+'float hash(vec2 p){p=fract(p*vec2(.3183,.3671));p+=dot(p,p.yx+19.19);return fract((p.x+p.y)*p.x*7.31);}',
+'vec2 path(float z){return vec2('+PA[0].toFixed(2)+'*sin('+PF[0]+'*z+uPh.x)+'+PA[1].toFixed(2)+'*sin('+PF[1]+'*z+uPh.y),'+
+  PA[2].toFixed(2)+'*cos('+PF[2]+'*z+uPh.z)+'+PA[3].toFixed(2)+'*sin('+PF[3]+'*z+uPh.w));}',
+'vec2 ctr(float z){return path(z)-path(0.);}',
+// >0 dentro da abertura, <0 na parte sólida (mesma função existe em JS para a colisão)
+'float barE(vec2 p,float ty,float an,float pr){',
+' if(ty<.5){float r=length(p);float da=abs(mod(atan(p.y,p.x)-an+3.14159265,TAU)-3.14159265);return min((pr-da)*r,r-'+HUB+');}',
+' if(ty<1.5)return abs(dot(p,vec2(cos(an),sin(an))))-pr;',
+' return pr-length(p-'+HOLE_D+'*vec2(cos(an),sin(an)));}',
+'void main(){',
+' vec2 uv=(gl_FragCoord.xy*2.-uRes)/min(uRes.x,uRes.y);',
+' float cr=cos(uRoll),sr=sin(uRoll);vec2 ruv=vec2(uv.x*cr-uv.y*sr,uv.x*sr+uv.y*cr);',
+' vec2 tg=vec2('+(PA[0]*PF[0]).toFixed(5)+'*cos(uPh.x)+'+(PA[1]*PF[1]).toFixed(5)+'*cos(uPh.y),-'+(PA[2]*PF[2]).toFixed(5)+'*sin(uPh.z)+'+(PA[3]*PF[3]).toFixed(5)+'*cos(uPh.w));',
+' vec3 fw=normalize(vec3(tg+uLook,1.));vec3 rt=normalize(vec3(fw.z,0.,-fw.x));vec3 up=cross(fw,rt);',
+' vec3 rd=normalize(fw*1.05+rt*ruv.x+up*ruv.y);',
+' float a=max(dot(rd.xy,rd.xy),1e-5);vec2 c=vec2(0.);float t=0.;',
+' for(int i=0;i<4;i++){vec2 oc=uPos-c;float b=dot(oc,rd.xy);float cc=dot(oc,oc)-R*R;',
+'  t=clamp((-b+sqrt(max(b*b-a*cc,0.)))/a,0.,150.);c=ctr(t*rd.z);}',
+' vec2 pw=uPos+rd.xy*t-c;float th=atan(pw.y,pw.x);float zw=t*rd.z+uZm;',
+// parede neon: grade, painéis acesos e pulsos que correm pelo túnel
+' float u=th/TAU*16.;float zc=zw*.25;float lw=.035+t*.003;',
+' float lu=smoothstep(.5-lw,.5,abs(fract(u)-.5));float lz=smoothstep(.5-lw*.7,.5,abs(fract(zc)-.5));',
+' float cell=hash(vec2(floor(u)+3.,mod(floor(zc),16.)+1.));',
+' vec3 cA=vec3(.43,.91,.72),cB=vec3(.48,.64,1.),cC=vec3(.78,.57,.92);',
+' vec3 neon=mix(cB,cA,.5+.5*sin(zw*TAU/32.));neon=mix(neon,cC,smoothstep(.2,1.,sin(zw*TAU/64.+1.)));',
+' float pulse=exp(-pow((fract(zw/32.-uT*.45)-.5)*48.,2.));float lz2=smoothstep(.5-lw*1.6,.5,abs(fract(zw)-.5));',
+' vec3 col=vec3(.012,.016,.035)+neon*(lu*.85+lz*1.25+lu*lz);',
+' col+=neon*step(.78,cell)*(.16+.14*sin(uT*3.+cell*40.));',
+' col+=neon*pulse*.5+vec3(1.)*pulse*lu*.5+neon*lz2*.16;',
+' col+=neon*.05*(.5+.5*sin(u*TAU*2.))*(.5+.5*sin(zc*TAU));',
+' float fog=exp(-t*.03);vec3 fogc=vec3(.03,.04,.1)+neon*.1;',
+' col=col*fog+fogc*(1.-fog);',
+' col+=mix(cB,cC,.5)*.35*exp(-dot(ruv-(ctr(90.)-uPos)*.011,ruv-(ctr(90.)-uPos)*.011)*9.);',     // brilho no fundo do túnel
+// barreiras
+' vec3 glow=vec3(0.);',
+' for(int i=0;i<5;i++){vec4 br=uBar[i];if(br.x<.05)continue;float tb=br.x/rd.z;if(tb>t)break;',
+'  vec2 p=uPos+rd.xy*tb-ctr(br.x);float e=barE(p,br.y,br.z,br.w);',
+'  vec3 bc=br.y<.5?vec3(1.,.42,.55):(br.y<1.5?vec3(1.,.78,.35):vec3(.95,.45,1.));',
+'  float bf=exp(-tb*.03);',
+'  if(e<0.){',
+'   float rr=length(p);',
+'   vec3 s=vec3(.03,.025,.05)+bc*(exp(e*7.)*1.3+exp(e*40.)*1.5);',
+'   s+=bc*.07*step(.5,fract((p.x+p.y)*1.5+uT*.3));',
+'   s+=bc*.5*exp(-(R-rr)*9.);',
+'   s+=bc*.12*smoothstep(.03,0.,abs(fract(rr*2.5)-.5)-.44);',
+'   col=s*bf+fogc*(1.-bf)+glow;glow=vec3(0.);t=tb;break;',
+'  }else glow+=bc*exp(-e*9.)*.55*bf;',
+' }',
+' col+=glow;',
+// linhas de velocidade
+' float rl=length(uv);float an=atan(uv.y,uv.x)/TAU*90.;float h=hash(vec2(floor(an),7.));',
+' float s2=fract(rl*.8-uT*(1.2+uSpd*2.2)+h*9.);',
+' col+=vec3(.7,.85,1.)*step(.8,h)*smoothstep(.35,0.,s2)*smoothstep(.3,1.1,rl)*(1.-abs(fract(an)-.5)*2.)*(.15+.55*uSpd);',
+' col+=vec3(.6,.9,1.)*.22*exp(-pow((rl-.035)*110.,2.))*step(uDead,0.);',
+' if(uDead>0.){float rg=uDead*2.2;col+=vec3(1.,.6,.3)*(exp(-uDead*5.)*1.2+exp(-pow((rl-rg)*7.,2.))*exp(-uDead*2.5));',
+'  col*=mix(1.,.35,smoothstep(0.,1.,uDead));}',
+' col*=1.-.32*dot(uv,uv)*.5;',
+' gl_FragColor=vec4(col,1.);}'].join('\n');
+var VS_FULL='attribute vec2 aP;void main(){gl_Position=vec4(aP,0.,1.);}';
+var VS_EX='attribute vec2 aP;attribute vec2 aC;uniform vec2 uSc;uniform float uPx;varying vec4 vC;'+
+'void main(){gl_Position=vec4(aP*uSc,0.,1.);gl_PointSize=uPx*(.4+aC.x*1.2);'+
+'vec3 c=mix(vec3(1.,.25,.1),vec3(1.,.85,.5),aC.x);c=mix(c,mix(vec3(.95,.45,1.),vec3(.5,.9,1.),aC.x),step(.5,aC.y));vC=vec4(c,aC.x);}';
+var FS_EX='varying vec4 vC;void main(){vec2 q=gl_PointCoord-.5;float a=smoothstep(.5,0.,length(q));gl_FragColor=vec4(vC.rgb*vC.a*a*a*1.4,1.);}';
+var pT=GFX.program(gl,VS_FULL,FS,'tunel/cena'),pE=GFX.program(gl,VS_EX,FS_EX,'tunel/explosao');
+if(!pT||!pE){GFX.noGL(stage,'shader');return}
+var drawFull=GFX.fullscreen(gl);
+var small=GFX.small();
+
+/* ---------- estado ---------- */
+var state='demo',z=0,speed=6,px=0,py=0,tx=0,ty=0,roll=0,time=0,dead=0,passed=0,next=0,B=[];
+var keys={},hi=GFX.hi('tunel-hi'),W=2,H=2,uBar=new Float32Array(20);
+var NE=small?450:900,E=new Float32Array(NE*6),ne=0,eg=new Float32Array(NE*4),bE=gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER,bE);gl.bufferData(gl.ARRAY_BUFFER,eg.byteLength,gl.DYNAMIC_DRAW);
+var q=GFX.quality(1,0.4);
+function wrap(a){a=(a+Math.PI)%TAU;if(a<0)a+=TAU;return a-Math.PI}
+function bar(i){
+  if(!B[i]){var ty2=i<2?1:(Math.random()*3|0),d=Math.min(1,i*.03);
+    B[i]={z:FIRST+i*SPACING,type:ty2,ang0:Math.random()*TAU,spin:(Math.random()<.5?-1:1)*(.25+d*.9)*(.6+Math.random()*.6),
+      param:ty2===0?Math.max(.55,.85-i*.008):ty2===1?.42:Math.max(.62,.8-i*.005)}}
+  return B[i];
+}
+function barAng(b){return b.ang0+b.spin*time}
+function barE(x,y,b){var an=barAng(b);
+  if(b.type===0){var r=Math.hypot(x,y),da=Math.abs(wrap(Math.atan2(y,x)-an));return Math.min((b.param-da)*r,r-HUB)}
+  if(b.type===1)return Math.abs(x*Math.cos(an)+y*Math.sin(an))-b.param;
+  return b.param-Math.hypot(x-HOLE_D*Math.cos(an),y-HOLE_D*Math.sin(an));
+}
+function hud(){$('sc').textContent=Math.floor(z);$('sp').textContent=Math.round(speed*12);$('hi').textContent=hi.get()}
+function start(){state='play';z=0;speed=9;px=py=tx=ty=0;roll=0;time=0;dead=0;passed=0;next=0;B=[];ne=0;
+  $('over').classList.add('hide');hud()}
+function crash(){
+  state='over';dead=1e-3;
+  for(var k=0;k<NE;k++){var o=k*6,a=Math.random()*TAU,v=Math.pow(Math.random(),1.6)*3+.15;
+    E[o]=0;E[o+1]=0;E[o+2]=Math.cos(a)*v;E[o+3]=Math.sin(a)*v;E[o+4]=.6+Math.random()*.6;E[o+5]=Math.random()<.35?1:0}
+  ne=NE;
+  var d=Math.floor(z),rec=hi.set(d);
+  $('msg').textContent=rec&&d>0?'Novo recorde! 🎉':'Você bateu!';
+  $('sub').textContent='Distância: '+d+' m · '+passed+(passed===1?' barreira':' barreiras')+'.';
+  $('go').textContent='Jogar de novo';hud();
+  setTimeout(function(){if(state==='over')$('over').classList.remove('hide')},750);
+}
+function step(dt){
+  time+=dt;
+  if(state==='play'){
+    var s=3.4*dt;
+    if(keys.ArrowLeft||keys.a)tx-=s;if(keys.ArrowRight||keys.d)tx+=s;if(keys.ArrowUp||keys.w)ty+=s;if(keys.ArrowDown||keys.s)ty-=s;
+    var l=Math.hypot(tx,ty);if(l>LIM){tx*=LIM/l;ty*=LIM/l}
+    var k=1-Math.exp(-9*dt);px+=(tx-px)*k;py+=(ty-py)*k;
+    roll+=(-(tx-px)*.3-roll)*(1-Math.exp(-6*dt));
+    speed=9+15*(1-Math.exp(-z/900));
+    z+=speed*dt;
+    while(bar(next).z<=z){
+      if(barE(px,py,bar(next))<0){z=bar(next).z-.02;crash();return}
+      passed++;next++;
+    }
+  }else if(state==='demo'){z+=6*dt;speed=6;px=Math.sin(time*.5)*.5;py=Math.cos(time*.37)*.4;roll=Math.sin(time*.4)*.1}
+  else{dead+=dt;var dr=Math.exp(-1.6*dt);
+    for(var n=0;n<ne;){var o=n*6;E[o+4]-=dt*.55;
+      if(E[o+4]<=0){ne--;var m=ne*6;for(var c=0;c<6;c++)E[o+c]=E[m+c];continue}
+      E[o]+=E[o+2]*dt;E[o+1]+=E[o+3]*dt;E[o+2]*=dr;E[o+3]*=dr;n++}}
+}
+function render(t){
+  var i;
+  gl.viewport(0,0,W,H);gl.disable(gl.BLEND);
+  gl.useProgram(pT.prog);
+  gl.uniform2f(pT.u.uRes,W,H);gl.uniform1f(pT.u.uT,t%1000);gl.uniform1f(pT.u.uZm,z%64);
+  gl.uniform4f(pT.u.uPh,(z*PF[0])%TAU,(z*PF[1])%TAU,(z*PF[2])%TAU,(z*PF[3])%TAU);
+  gl.uniform2f(pT.u.uPos,px,py);gl.uniform2f(pT.u.uLook,(tx-px)*.1,(ty-py)*.1);gl.uniform1f(pT.u.uRoll,roll);
+  gl.uniform1f(pT.u.uSpd,Math.min(1,(speed-5)/19)*(state==='over'?0:1));
+  for(i=0;i<5;i++){var b=state==='demo'?null:bar(next+i);
+    uBar[i*4]=b?b.z-z:-1;uBar[i*4+1]=b?b.type:0;uBar[i*4+2]=b?wrap(barAng(b)):0;uBar[i*4+3]=b?b.param:0}
+  gl.uniform4fv(pT.u.uBar,uBar);gl.uniform1f(pT.u.uDead,state==='over'?dead:0);
+  drawFull(pT.a.aP);
+  if(ne&&state==='over'){
+    for(i=0;i<ne;i++){eg[i*4]=E[i*6];eg[i*4+1]=E[i*6+1];eg[i*4+2]=Math.min(1,E[i*6+4]);eg[i*4+3]=E[i*6+5]}
+    var mn=Math.min(W,H);
+    gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE);
+    gl.useProgram(pE.prog);gl.uniform2f(pE.u.uSc,mn/W,mn/H);gl.uniform1f(pE.u.uPx,Math.max(3,mn*.022));
+    gl.bindBuffer(gl.ARRAY_BUFFER,bE);gl.bufferSubData(gl.ARRAY_BUFFER,0,eg.subarray(0,ne*4));
+    gl.enableVertexAttribArray(pE.a.aP);gl.vertexAttribPointer(pE.a.aP,2,gl.FLOAT,false,16,0);
+    gl.enableVertexAttribArray(pE.a.aC);gl.vertexAttribPointer(pE.a.aC,2,gl.FLOAT,false,16,8);
+    gl.drawArrays(gl.POINTS,0,ne);gl.disableVertexAttribArray(pE.a.aC);gl.disable(gl.BLEND);
+  }
+}
+var hudT=0;
+GFX.loop(function(dt,t,ms){
+  if(GFX.lost)return;
+  q.push(ms);GFX.fit(cv,q.value,1.5);W=cv.width;H=cv.height;
+  step(dt);render(t);
+  hudT+=dt;if(hudT>.1&&state==='play'){hudT=0;hud()}
+});
+
+/* ---------- entrada ---------- */
+var drag=null;
+function clampT(){var l=Math.hypot(tx,ty);if(l>LIM){tx*=LIM/l;ty*=LIM/l}}
+function ptr(e){
+  var r=cv.getBoundingClientRect(),mh=Math.min(r.width,r.height)/2;
+  if(e.pointerType==='mouse'){tx=(e.clientX-(r.left+r.width/2))/mh*1.7;ty=-(e.clientY-(r.top+r.height/2))/mh*1.7;clampT()}
+  else if(drag&&drag.id===e.pointerId){tx+=(e.clientX-drag.x)/mh*2.4;ty-=(e.clientY-drag.y)/mh*2.4;drag.x=e.clientX;drag.y=e.clientY;clampT()}
+}
+cv.addEventListener('pointerdown',function(e){drag={id:e.pointerId,x:e.clientX,y:e.clientY};try{cv.setPointerCapture(e.pointerId)}catch(_){}ptr(e)});
+cv.addEventListener('pointermove',ptr);
+cv.addEventListener('pointerup',function(){drag=null});cv.addEventListener('pointercancel',function(){drag=null});
+addEventListener('keydown',function(e){var k=e.key.length===1?e.key.toLowerCase():e.key;
+  if(/^(Arrow(Left|Right|Up|Down)|[wasd])$/.test(k)){keys[k]=true;e.preventDefault()}
+  else if((k==='Enter'||k===' ')&&state!=='play'&&e.target.tagName!=='BUTTON'){e.preventDefault();start()}});
+addEventListener('keyup',function(e){var k=e.key.length===1?e.key.toLowerCase():e.key;keys[k]=false});
+addEventListener('blur',function(){keys={}});
+$('go').onclick=start;$('novo').onclick=start;hud();
+window.__tunel={get state(){return state},get z(){return z},get speed(){return speed},get pos(){return [px,py]},get target(){return [tx,ty]},get passed(){return passed},
+  get next(){var b=bar(next);return {zRel:b.z-z,type:b.type,ang:barAng(b),param:b.param}},get q(){return q.value},get parts(){return ne}};
+})();
+</script></body></html>

@@ -1,6 +1,6 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Labirinto</title><link rel="stylesheet" href="style.css"></head><body>
-<header><a href="index.html">← Jogos</a><h1>🌀 Labirinto</h1></header><main>
+<title>Labirinto</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css"></head><body>
+<header><a href="index.html">← Jogos</a><h1>🌀 Labirinto</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
 <div class="bar"><select id="lv"><option value="10">Pequeno</option><option value="15" selected>Médio</option><option value="22">Grande</option></select>
 <span class="stat">Tempo <b id="tm">0:00</b></span><span class="stat">Passos <b id="sp">0</b></span><button id="new" class="primary">Novo jogo</button></div>
 <div class="msg" id="msg"></div>
@@ -39,4 +39,4 @@ let p0;cv.addEventListener('pointerdown',e=>{p0=e;e.preventDefault()});
 cv.addEventListener('pointerup',e=>{if(!p0)return;const dx=e.clientX-p0.clientX,dy=e.clientY-p0.clientY;p0=null;
  if(Math.max(Math.abs(dx),Math.abs(dy))<15)return;Math.abs(dx)>Math.abs(dy)?move(Math.sign(dx),0,1):move(0,Math.sign(dy),1)});
 $('new').onclick=function(){this.blur();start()};$('lv').onchange=function(){this.blur();start()};start();
-</script></body></html>
+</script><script src="fx.js" defer></script></body></html>

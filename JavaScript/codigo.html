@@ -1,5 +1,5 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Código Secreto</title><link rel="stylesheet" href="style.css">
+<title>Código Secreto</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css">
 <style>.rows{display:flex;flex-direction:column;gap:5px;width:min(100%,340px)}
 .row{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:4px 10px}
 .row.act{border-color:var(--acc2)}.row>small{width:18px;color:var(--mut);text-align:right}
@@ -12,7 +12,7 @@
 .pal button:hover{border-color:#fff}
 button:disabled{opacity:.45;cursor:default}
 .sec{display:flex;gap:8px;align-items:center;justify-content:center;min-height:32px}</style></head><body>
-<header><a href="index.html">← Jogos</a><h1>🔐 Código Secreto</h1></header><main>
+<header><a href="index.html">← Jogos</a><h1>🔐 Código Secreto</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
 <div class="bar"><span class="stat">Tentativa <b id="tn">1</b>/10</span><button id="new" class="primary">Novo jogo</button></div>
 <div class="msg" id="msg"></div><div class="sec" id="sec"></div>
 <div class="rows" id="rows"></div>
@@ -45,4 +45,4 @@ $('del').onclick=function(){this.blur();del()};$('ok').onclick=function(){this.b
 addEventListener('keydown',e=>{if(e.key>='1'&&e.key<='6'&&e.key.length===1){e.preventDefault();put(+e.key-1)}
  else if(e.key==='Backspace'){e.preventDefault();del()}else if(e.key==='Enter'){e.preventDefault();send()}});
 $('new').onclick=function(){this.blur();start()};start();
-</script></body></html>
+</script><script src="fx.js" defer></script></body></html>

@@ -1,6 +1,6 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Desvio</title><link rel="stylesheet" href="style.css"></head><body>
-<header><a href="index.html">← Jogos</a><h1>🚀 Desvio</h1></header><main>
+<title>Desvio</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css"></head><body>
+<header><a href="index.html">← Jogos</a><h1>🚀 Desvio</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
 <div class="bar"><span class="stat">Tempo <b id="sc">0,0</b> s</span><span class="stat">Recorde <b id="hi">0,0</b> s</span><span class="stat">Escudo <b id="sh">—</b></span><button id="new" class="primary">Novo jogo</button></div>
 <canvas id="c" width="400" height="500"></canvas>
 <div class="msg" id="msg"></div>
@@ -51,4 +51,4 @@ addEventListener('keyup',e=>{const k=km(e);if(k)keys[k]=0});
 addEventListener('blur',()=>keys={});
 $('new').onclick=function(){this.blur();start()};
 requestAnimationFrame(loop);
-</script></body></html>
+</script><script src="fx.js" defer></script></body></html>

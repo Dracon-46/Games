@@ -1,6 +1,6 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Cobrinha</title><link rel="stylesheet" href="style.css"></head><body>
-<header><a href="index.html">← Jogos</a><h1>🐍 Cobrinha</h1></header><main>
+<title>Cobrinha</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css"></head><body>
+<header><a href="index.html">← Jogos</a><h1>🐍 Cobrinha</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
 <div class="bar"><span class="stat">Pontos <b id="sc">0</b></span><span class="stat">Recorde <b id="hi">0</b></span><button id="go" class="primary">Jogar</button></div>
 <canvas id="c" width="400" height="400"></canvas>
 <div class="pad"><span></span><button data-d="0,-1">▲</button><span></span><button data-d="-1,0">◀</button><button data-d="0,1">▼</button><button data-d="1,0">▶</button></div>
@@ -29,4 +29,4 @@ let t0;cv.addEventListener('pointerdown',e=>t0=e);cv.addEventListener('pointerup
  if(Math.max(Math.abs(dx),Math.abs(dy))<15){if(!timer)start();return}if(!timer)start();Math.abs(dx)>Math.abs(dy)?turn(Math.sign(dx),0):turn(0,Math.sign(dy))});
 document.getElementById('go').onclick=start;
 snake=[{x:10,y:10},{x:9,y:10},{x:8,y:10}];food={x:15,y:10};draw();
-</script></body></html>
+</script><script src="fx.js" defer></script></body></html>

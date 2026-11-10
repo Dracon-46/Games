@@ -22,3 +22,4 @@ canvas{background:#0b0d14;border:1px solid var(--line);border-radius:12px;max-wi
 @media (hover:hover) and (pointer:fine){.pad{display:none}}
 .board{display:grid;width:min(100%,480px);aspect-ratio:1;border:2px solid var(--line);border-radius:8px;overflow:hidden;user-select:none}
 .board>div{display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative}
+header .brand{margin-left:auto;display:flex;opacity:.8}header .brand:hover{opacity:1}header .brand img{width:26px;height:26px}

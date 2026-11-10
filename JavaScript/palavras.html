@@ -1,8 +1,8 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Chuva de Palavras</title><link rel="stylesheet" href="style.css">
+<title>Chuva de Palavras</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css">
 <style>#in{font:inherit;font-size:18px;width:min(100%,400px);padding:10px 14px;border-radius:10px;border:2px solid var(--line);background:var(--card);color:var(--fg);outline:none;text-align:center;letter-spacing:1px}
 #in:focus{border-color:var(--acc2)}#in.bad{border-color:var(--bad)}</style></head><body>
-<header><a href="index.html">← Jogos</a><h1>🌧️ Chuva de Palavras</h1></header><main>
+<header><a href="index.html">← Jogos</a><h1>🌧️ Chuva de Palavras</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
 <div class="bar"><span class="stat">Pontos <b id="sc">0</b></span><span class="stat">Vidas <b id="lv">3</b></span><span class="stat">Recorde <b id="hi">0</b></span><button id="new" class="primary">Novo jogo</button></div>
 <input id="in" type="text" placeholder="digite aqui" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="done" aria-label="Digite a palavra">
 <canvas id="c" width="400" height="380"></canvas>
@@ -36,10 +36,11 @@ function draw(dt){x.clearRect(0,0,W,H);x.fillStyle='#2d334a';x.fillRect(0,H-4,W,
  if(st!=='play'){x.fillStyle='rgba(8,10,16,.62)';x.fillRect(0,0,W,H);x.fillStyle='#fff';x.textAlign='center';x.font='bold 26px system-ui';
   x.fillText(st==='over'?'Fim de jogo':'Chuva de Palavras',W/2,175);x.font='16px system-ui';x.fillText(st==='over'?'Pontos: '+score+' · toque para jogar de novo':'Toque aqui ou comece a digitar',W/2,205)}}
 function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;if(st==='play')step(dt);draw(dt);requestAnimationFrame(loop)}
+const foc=()=>{inp.focus();if(matchMedia('(pointer:coarse)').matches)inp.scrollIntoView({block:'start'})};
 inp.addEventListener('input',typed);
 inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();if(st==='over')start();inp.value='';inp.className=''}});
 addEventListener('keydown',e=>{if(document.activeElement!==inp&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&(e.key.length===1||e.key==='Enter')&&e.target.tagName!=='BUTTON')inp.focus()});
-cv.addEventListener('pointerdown',e=>{e.preventDefault();if(st!=='play')start();inp.focus()});
-$('new').onclick=()=>{start();inp.focus()};
+cv.addEventListener('pointerdown',e=>{e.preventDefault();if(st!=='play')start();foc()});
+$('new').onclick=()=>{start();foc()};
 requestAnimationFrame(loop);
-</script></body></html>
+</script><script src="fx.js" defer></script></body></html>

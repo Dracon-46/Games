@@ -1,5 +1,5 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Xadrez</title><link rel="stylesheet" href="style.css">
+<title>Xadrez</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css">
 <style>
 main{max-width:1000px}
 .game{display:flex;flex-wrap:wrap;gap:18px;justify-content:center;align-items:flex-start;width:100%}
@@ -21,7 +21,7 @@ main{max-width:1000px}
 #promo button{font-size:44px;line-height:1;padding:8px 12px;background:#d9dfee;color:#14161f}
 label.f{display:flex;flex-direction:column;font-size:12px;color:var(--mut);gap:2px}
 </style></head><body>
-<header><a href="index.html">← Jogos</a><h1>♞ Xadrez</h1></header><main>
+<header><a href="index.html">← Jogos</a><h1>♞ Xadrez</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
 <div class="bar">
 <label class="f">Modo<select id="mode"><option value="cpu">Contra o computador</option><option value="2p">2 jogadores (mesma tela)</option><option value="cvc">Computador × Computador</option></select></label>
 <label class="f">Sua cor<select id="side"><option value="w">Brancas</option><option value="b">Pretas</option><option value="r">Sorteio</option></select></label>
@@ -94,4 +94,4 @@ $('flip').onclick=()=>{flip=!flip;draw()};
 $('hintb').onclick=()=>{if(over||!human(s.t))return;const my=tok,st=s;think(s,{depth:4,time:1200},m=>{if(my===tok&&st===s&&m){hint=m;draw()}})};
 $('resign').onclick=()=>{if(over||cfg.mode==='cvc')return;const l=cfg.mode==='cpu'?cfg.me:s.t;over=NM[l]+' desistiram. '+NM[l==='w'?'b':'w']+' vencem.';tok++;busy=false;draw()};
 $('new').onclick=newGame;$('mode').onchange=()=>{$('side').disabled=$('mode').value!=='cpu'};newGame();
-</script></body></html>
+</script><script src="fx.js" defer></script></body></html>

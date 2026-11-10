@@ -1,8 +1,8 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Memória</title><link rel="stylesheet" href="style.css">
+<title>Memória</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css">
 <style>.board{grid-template-columns:repeat(4,1fr);gap:8px;border:0;width:min(100%,400px);aspect-ratio:auto}.board>div{aspect-ratio:1;background:var(--acc2);border-radius:12px;font-size:clamp(28px,9vw,44px);transition:transform .2s,background .2s}
 .board>div span{visibility:hidden}.board>div.up{background:var(--card);transform:rotateY(180deg)}.board>div.up span{visibility:visible;transform:rotateY(180deg)}.board>div.ok{background:#1f3a33}</style></head><body>
-<header><a href="index.html">← Jogos</a><h1>🃏 Memória</h1></header><main>
+<header><a href="index.html">← Jogos</a><h1>🃏 Memória</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
 <div class="bar"><span class="stat">Jogadas <b id="mv">0</b></span><span class="stat">Pares <b id="pr">0</b>/8</span><button id="new" class="primary">Novo jogo</button></div>
 <div class="msg" id="msg"></div><div class="board" id="bd"></div>
 </main><script>
@@ -17,4 +17,4 @@ function flip(d,e){if(lock||d.classList.contains('up'))return;d.classList.add('u
  if(a.e===b.e){a.d.classList.add('ok');b.d.classList.add('ok');$('pr').textContent=++pr;if(pr===8)$('msg').textContent='🎉 Você completou em '+mv+' jogadas!'}
  else{lock=true;setTimeout(()=>{a.d.classList.remove('up');b.d.classList.remove('up');lock=false},750)}}
 $('new').onclick=start;start();
-</script></body></html>
+</script><script src="fx.js" defer></script></body></html>
