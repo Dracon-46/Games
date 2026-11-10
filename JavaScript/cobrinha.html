@@ -1,0 +1,32 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cobrinha</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css"></head><body>
+<header><a href="index.html">← Jogos</a><h1>🐍 Cobrinha</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
+<div class="bar"><span class="stat">Pontos <b id="sc">0</b></span><span class="stat">Recorde <b id="hi">0</b></span><button id="go" class="primary">Jogar</button></div>
+<canvas id="c" width="400" height="400"></canvas>
+<div class="pad"><span></span><button data-d="0,-1">▲</button><span></span><button data-d="-1,0">◀</button><button data-d="0,1">▼</button><button data-d="1,0">▶</button></div>
+<p class="hint">Setas ou WASD para mover. No celular, deslize o dedo ou use os botões.</p>
+</main><script>
+const cv=document.getElementById('c'),x=cv.getContext('2d'),N=20,S=20;
+let snake,dir,q,food,score,timer=null,hi=0;
+try{hi=+localStorage.getItem('cobrinha-hi')||0}catch(e){}
+document.getElementById('hi').textContent=hi;
+function place(){do{food={x:Math.random()*N|0,y:Math.random()*N|0}}while(snake.some(s=>s.x===food.x&&s.y===food.y))}
+function start(){snake=[{x:10,y:10},{x:9,y:10},{x:8,y:10}];dir={x:1,y:0};q=[];score=0;place();upd();clearInterval(timer);timer=setInterval(tick,110);draw()}
+function upd(){document.getElementById('sc').textContent=score}
+function turn(dx,dy){const l=q.length?q[q.length-1]:dir;if(l.x===-dx&&l.y===-dy||l.x===dx&&l.y===dy)return;if(q.length<2)q.push({x:dx,y:dy})}
+function tick(){if(q.length)dir=q.shift();const h={x:snake[0].x+dir.x,y:snake[0].y+dir.y};
+ const eat=h.x===food.x&&h.y===food.y,body=eat?snake:snake.slice(0,-1);
+ if(h.x<0||h.y<0||h.x>=N||h.y>=N||body.some(s=>s.x===h.x&&s.y===h.y))return over();
+ snake.unshift(h);if(eat){score++;upd();place()}else snake.pop();draw()}
+function over(){clearInterval(timer);timer=null;if(score>hi){hi=score;try{localStorage.setItem('cobrinha-hi',hi)}catch(e){}document.getElementById('hi').textContent=hi}
+ draw();x.fillStyle='rgba(0,0,0,.6)';x.fillRect(0,0,400,400);x.fillStyle='#fff';x.font='bold 28px system-ui';x.textAlign='center';x.fillText('Fim de jogo',200,190);x.font='16px system-ui';x.fillText('Pontos: '+score,200,220)}
+function draw(){x.clearRect(0,0,400,400);x.fillStyle='#ff6b81';x.beginPath();x.arc(food.x*S+S/2,food.y*S+S/2,S/2-3,0,7);x.fill();
+ snake.forEach((s,i)=>{x.fillStyle=i?'#4fc79a':'#6ee7b7';x.beginPath();x.roundRect(s.x*S+1,s.y*S+1,S-2,S-2,5);x.fill()})}
+addEventListener('keydown',e=>{const m={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0],w:[0,-1],s:[0,1],a:[-1,0],d:[1,0]}[e.key.length===1?e.key.toLowerCase():e.key];
+ if(m){e.preventDefault();if(!timer)start();else turn(...m)}});
+document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{if(!timer)start();turn(...b.dataset.d.split(',').map(Number))});
+let t0;cv.addEventListener('pointerdown',e=>t0=e);cv.addEventListener('pointerup',e=>{if(!t0)return;const dx=e.clientX-t0.clientX,dy=e.clientY-t0.clientY;t0=null;
+ if(Math.max(Math.abs(dx),Math.abs(dy))<15){if(!timer)start();return}if(!timer)start();Math.abs(dx)>Math.abs(dy)?turn(Math.sign(dx),0):turn(0,Math.sign(dy))});
+document.getElementById('go').onclick=start;
+snake=[{x:10,y:10},{x:9,y:10},{x:8,y:10}];food={x:15,y:10};draw();
+</script><script src="fx.js" defer></script></body></html>

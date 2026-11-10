@@ -1,0 +1,21 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Jokempô</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css">
+<style>.arena{display:flex;gap:24px;align-items:center;font-size:72px;min-height:120px}.arena small{display:block;font-size:14px;color:var(--mut);text-align:center}.ch button{font-size:40px;padding:10px 18px}</style></head><body>
+<header><a href="index.html">← Jogos</a><h1>✊ Jokempô</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
+<div class="bar"><span class="stat">Você <b id="w">0</b></span><span class="stat">Empates <b id="d">0</b></span><span class="stat">Máquina <b id="l">0</b></span></div>
+<div class="arena"><div><span id="me">❔</span><small>Você</small></div><span style="font-size:24px;color:var(--mut)">vs</span><div><span id="pc">❔</span><small>Máquina</small></div></div>
+<div class="msg" id="msg">Faça sua jogada</div>
+<div class="bar ch"><button data-i="0" title="Pedra">✊</button><button data-i="1" title="Papel">✋</button><button data-i="2" title="Tesoura">✌️</button></div>
+<button id="rs">Zerar placar</button>
+</main><script>
+const E=['✊','✋','✌️'],sc={w:0,d:0,l:0},$=i=>document.getElementById(i);let busy=false;
+function show(){for(const k in sc)$(k).textContent=sc[k]}
+document.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{if(busy)return;busy=true;const a=+b.dataset.i,c=Math.random()*3|0;
+ $('me').textContent=E[a];$('pc').textContent='🤔';$('msg').textContent='...';
+ setTimeout(()=>{$('pc').textContent=E[c];const r=(a-c+3)%3;
+  if(r===0){sc.d++;$('msg').textContent='Empate!';$('msg').style.color='var(--warn)'}
+  else if(r===1){sc.w++;$('msg').textContent='Você venceu!';$('msg').style.color='var(--acc)'}
+  else{sc.l++;$('msg').textContent='Você perdeu!';$('msg').style.color='var(--bad)'}
+  show();busy=false},450)});
+$('rs').onclick=()=>{sc.w=sc.d=sc.l=0;show()};
+</script><script src="fx.js" defer></script></body></html>

@@ -1,0 +1,43 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Blocos</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css">
+<style>.side{display:flex;gap:14px;align-items:flex-start;justify-content:center;width:100%}.col{display:flex;flex-direction:column;gap:10px;align-items:stretch}.pad{grid-template-columns:repeat(4,58px);grid-template-rows:52px}</style></head><body>
+<header><a href="index.html">← Jogos</a><h1>🧱 Blocos</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
+<div class="side"><canvas id="c" width="243" height="486"></canvas>
+<div class="col"><span class="stat">Pontos<br><b id="sc">0</b></span><span class="stat">Linhas<br><b id="ln">0</b></span><span class="stat">Nível<br><b id="lv">1</b></span>
+<canvas id="nx" width="90" height="90"></canvas><button id="go" class="primary">Jogar</button><button id="pa">Pausar</button></div></div>
+<div class="pad"><button data-k="l">◀</button><button data-k="r">▶</button><button data-k="u">⟳</button><button data-k="d">▼</button></div>
+<p class="hint">◀ ▶ movem, ▲ gira, ▼ desce, Espaço solta, P pausa. Peças de 2 a 5 blocos: complete linhas para limpá-las.</p>
+</main><script>
+const C=9,R=18,S=27,cv=document.getElementById('c'),x=cv.getContext('2d'),nx=document.getElementById('nx').getContext('2d'),$=i=>document.getElementById(i);
+const SH=[[[0,0],[1,0]],[[0,0],[1,0],[2,0]],[[0,0],[1,0],[0,1]],[[0,0],[1,0],[0,1],[1,1]],[[0,0],[1,0],[2,0],[1,1]],[[0,0],[1,0],[1,1],[2,1]],[[0,0],[0,1],[1,1],[2,1]],
+ [[1,0],[0,1],[1,1],[2,1],[1,2]],[[0,0],[2,0],[0,1],[1,1],[2,1]],[[0,0],[1,0],[2,0],[3,0]]],
+ COL=['#ffd166','#6ee7b7','#7aa2ff','#ff6b81','#c792ea','#5ad4e6','#ff9f68','#f78fb3','#a3e635','#e2e8f0'],WT=[3,4,4,4,4,3,3,1,2,3];
+let g,cur,next,score,lines,level,timer=null,paused=false,over=true;
+function rnd(){let t=WT.reduce((a,b)=>a+b),r=Math.random()*t,i=0;while((r-=WT[i])>0)i++;let c=SH[i].map(p=>p.slice());if(Math.random()<.5)c=c.map(([a,b])=>[-a,b]);return{c:norm(c),k:i,x:0,y:0}}
+function norm(c){const mx=Math.min(...c.map(p=>p[0])),my=Math.min(...c.map(p=>p[1]));return c.map(([a,b])=>[a-mx,b-my])}
+const fits=(c,px,py)=>c.every(([a,b])=>{const X=px+a,Y=py+b;return X>=0&&X<C&&Y<R&&(Y<0||!g[Y][X])});
+function spawn(){cur=next;next=rnd();const w=Math.max(...cur.c.map(p=>p[0]))+1;cur.x=(C-w)>>1;cur.y=0;if(!fits(cur.c,cur.x,cur.y))end()}
+function start(){g=Array.from({length:R},()=>Array(C).fill(0));score=lines=0;level=1;over=false;paused=false;next=rnd();spawn();hud();loop()}
+function loop(){clearInterval(timer);timer=setInterval(step,Math.max(90,620-level*50))}
+function hud(){$('sc').textContent=score;$('ln').textContent=lines;$('lv').textContent=level}
+function step(){if(over||paused)return;if(fits(cur.c,cur.x,cur.y+1))cur.y++;else lock();draw()}
+function lock(){cur.c.forEach(([a,b])=>{if(cur.y+b>=0)g[cur.y+b][cur.x+a]=COL[cur.k]});let n=0;
+ for(let r=R-1;r>=0;)if(g[r].every(v=>v)){g.splice(r,1);g.unshift(Array(C).fill(0));n++}else r--;
+ if(n){score+=[0,100,250,450,700,1000][n]*level;lines+=n;const l=1+(lines/8|0);if(l!==level){level=l;loop()}hud()}spawn()}
+function end(){over=true;clearInterval(timer)}
+function act(k){if(over||paused)return;
+ if(k==='l'&&fits(cur.c,cur.x-1,cur.y))cur.x--;else if(k==='r'&&fits(cur.c,cur.x+1,cur.y))cur.x++;
+ else if(k==='d'){if(fits(cur.c,cur.x,cur.y+1)){cur.y++;score++;hud()}}
+ else if(k==='u'){const c=norm(cur.c.map(([a,b])=>[-b,a]));for(const o of[0,-1,1,-2,2])if(fits(c,cur.x+o,cur.y)){cur.c=c;cur.x+=o;break}}
+ else if(k==='s'){while(fits(cur.c,cur.x,cur.y+1)){cur.y++;score+=2}hud();lock()}draw()}
+function cell(ctx,X,Y,col,s){ctx.fillStyle=col;ctx.beginPath();ctx.roundRect(X*s+1.5,Y*s+1.5,s-3,s-3,6);ctx.fill()}
+function draw(){x.clearRect(0,0,cv.width,cv.height);x.fillStyle='#151927';for(let r=0;r<R;r++)for(let c=0;c<C;c++)if((r+c)%2)x.fillRect(c*S,r*S,S,S);
+ g&&g.forEach((row,r)=>row.forEach((v,c)=>v&&cell(x,c,r,v,S)));
+ if(cur&&!over){let gy=cur.y;while(fits(cur.c,cur.x,gy+1))gy++;x.globalAlpha=.22;cur.c.forEach(([a,b])=>cell(x,cur.x+a,gy+b,COL[cur.k],S));x.globalAlpha=1;cur.c.forEach(([a,b])=>cell(x,cur.x+a,cur.y+b,COL[cur.k],S))}
+ nx.clearRect(0,0,90,90);if(next)next.c.forEach(([a,b])=>cell(nx,a+.5,b+.5,COL[next.k],20));
+ if(over||paused){x.fillStyle='rgba(0,0,0,.65)';x.fillRect(0,0,cv.width,cv.height);x.fillStyle='#fff';x.textAlign='center';x.font='bold 24px system-ui';x.fillText(paused?'Pausado':g?'Fim de jogo':'Blocos',cv.width/2,cv.height/2)}}
+function pause(){if(over)return;paused=!paused;$('pa').textContent=paused?'Continuar':'Pausar';draw()}
+addEventListener('keydown',e=>{const k={ArrowLeft:'l',ArrowRight:'r',ArrowDown:'d',ArrowUp:'u',' ':'s'}[e.key];if(k){e.preventDefault();act(k)}else if(e.key.toLowerCase()==='p')pause()});
+document.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>act(b.dataset.k));
+$('go').onclick=()=>{start();draw();$('go').blur()};$('pa').onclick=()=>{pause();$('pa').blur()};draw();
+</script><script src="fx.js" defer></script></body></html>

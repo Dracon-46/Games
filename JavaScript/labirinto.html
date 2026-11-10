@@ -1,0 +1,42 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Labirinto</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css"></head><body>
+<header><a href="index.html">← Jogos</a><h1>🌀 Labirinto</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
+<div class="bar"><select id="lv"><option value="10">Pequeno</option><option value="15" selected>Médio</option><option value="22">Grande</option></select>
+<span class="stat">Tempo <b id="tm">0:00</b></span><span class="stat">Passos <b id="sp">0</b></span><button id="new" class="primary">Novo jogo</button></div>
+<div class="msg" id="msg"></div>
+<canvas id="c" width="400" height="400"></canvas>
+<div class="pad"><span></span><button data-d="0,-1">▲</button><span></span><button data-d="-1,0">◀</button><button data-d="0,1">▼</button><button data-d="1,0">▶</button></div>
+<p class="hint">Leve a bolinha até a saída verde. Setas ou WASD para andar; no celular, deslize o dedo (corre até a próxima esquina) ou use os botões.</p>
+</main><script>
+const $=i=>document.getElementById(i),cv=$('c'),x=cv.getContext('2d'),D=[[0,-1,1,4],[1,0,2,8],[0,1,4,1],[-1,0,8,2]];
+let N,w,px,py,steps,t0,timer,done,seen;
+function gen(){w=new Uint8Array(N*N).fill(15);const vis=new Uint8Array(N*N),s=[0];vis[0]=1;
+ while(s.length){const c=s[s.length-1],cx=c%N,cy=c/N|0,o=[];
+  D.forEach(([dx,dy,b,ob])=>{const nx=cx+dx,ny=cy+dy;if(nx>=0&&ny>=0&&nx<N&&ny<N&&!vis[ny*N+nx])o.push([ny*N+nx,b,ob])});
+  if(!o.length){s.pop();continue}const[n,b,ob]=o[Math.random()*o.length|0];w[c]&=~b;w[n]&=~ob;vis[n]=1;s.push(n)}}
+function start(){N=+$('lv').value;gen();px=py=0;steps=0;t0=0;done=false;seen=new Uint8Array(N*N);seen[0]=1;clearInterval(timer);timer=null;
+ $('msg').textContent='';$('sp').textContent=0;$('tm').textContent='0:00';draw()}
+const secs=()=>t0?Math.floor((Date.now()-t0)/1000):0,fmt=s=>(s/60|0)+':'+String(s%60).padStart(2,'0');
+function one(dx,dy){const d=D.find(q=>q[0]===dx&&q[1]===dy);if(done||w[py*N+px]&d[2])return false;
+ if(!t0){t0=Date.now();timer=setInterval(()=>$('tm').textContent=fmt(secs()),250)}
+ px+=dx;py+=dy;steps++;seen[py*N+px]=1;
+ if(px===N-1&&py===N-1){done=true;clearInterval(timer);const s=secs();$('tm').textContent=fmt(s);$('msg').textContent='🎉 Você saiu em '+fmt(s)+' com '+steps+' passos!'}
+ return true}
+function move(dx,dy,slide){if(one(dx,dy)&&slide){const open=()=>{const c=w[py*N+px];return 4-(c&1)-(c>>1&1)-(c>>2&1)-(c>>3&1)};while(!done&&open()<=2&&one(dx,dy));}
+ $('sp').textContent=steps;draw()}
+function draw(){const S=396/N;x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,400,400);x.translate(2,2);
+ x.fillStyle='#161a28';for(let i=0;i<N*N;i++)if(seen[i])x.fillRect(i%N*S,(i/N|0)*S,S+.5,S+.5);
+ x.fillStyle='#2f8f6b';x.fillRect((N-1)*S+2,(N-1)*S+2,S-4,S-4);
+ x.strokeStyle='#7aa2ff';x.lineWidth=2;x.lineCap='round';x.beginPath();
+ for(let r=0;r<N;r++)for(let c=0;c<N;c++){const m=w[r*N+c],X=c*S,Y=r*S;
+  if(m&1){x.moveTo(X,Y);x.lineTo(X+S,Y)}if(m&8){x.moveTo(X,Y);x.lineTo(X,Y+S)}
+  if(r===N-1&&m&4){x.moveTo(X,Y+S);x.lineTo(X+S,Y+S)}if(c===N-1&&m&2){x.moveTo(X+S,Y);x.lineTo(X+S,Y+S)}}
+ x.stroke();x.fillStyle=done?'#6ee7b7':'#ffd166';x.beginPath();x.arc(px*S+S/2,py*S+S/2,S*.32,0,7);x.fill()}
+addEventListener('keydown',e=>{const m={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0],w:[0,-1],s:[0,1],a:[-1,0],d:[1,0]}[e.key.length===1?e.key.toLowerCase():e.key];
+ if(m){e.preventDefault();move(...m)}});
+document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>move(...b.dataset.d.split(',').map(Number)));
+let p0;cv.addEventListener('pointerdown',e=>{p0=e;e.preventDefault()});
+cv.addEventListener('pointerup',e=>{if(!p0)return;const dx=e.clientX-p0.clientX,dy=e.clientY-p0.clientY;p0=null;
+ if(Math.max(Math.abs(dx),Math.abs(dy))<15)return;Math.abs(dx)>Math.abs(dy)?move(Math.sign(dx),0,1):move(0,Math.sign(dy),1)});
+$('new').onclick=function(){this.blur();start()};$('lv').onchange=function(){this.blur();start()};start();
+</script><script src="fx.js" defer></script></body></html>

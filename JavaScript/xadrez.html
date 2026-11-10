@@ -1,0 +1,97 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Xadrez</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css">
+<style>
+main{max-width:1000px}
+.game{display:flex;flex-wrap:wrap;gap:18px;justify-content:center;align-items:flex-start;width:100%}
+.left{width:min(100%,500px);display:flex;flex-direction:column;gap:8px}
+.panel{flex:1;min-width:240px;max-width:500px;display:flex;flex-direction:column;gap:10px}
+.board{grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);width:100%;position:relative}
+.board>div.sq{min-height:0;overflow:hidden;font-size:clamp(26px,9.5vw,50px);line-height:1}
+.l{background:#d9dfee}.d{background:#6f82b0}.w{color:#fff;text-shadow:0 0 2px #000,0 0 2px #000,0 1px 2px #000}.k{color:#14161f}
+.last{box-shadow:inset 0 0 0 100px rgba(255,209,102,.4)}.hint{}.sq.hn{box-shadow:inset 0 0 0 100px rgba(122,162,255,.65)}.sq.sel{box-shadow:inset 0 0 0 100px rgba(110,231,183,.6)}.sq.chk{box-shadow:inset 0 0 0 100px rgba(255,107,129,.75)}
+.sq.hill{outline:3px dashed rgba(255,209,102,.8);outline-offset:-5px}
+.to::after{content:"";position:absolute;width:28%;height:28%;border-radius:50%;background:rgba(20,22,31,.35)}.to.cap::after{width:86%;height:86%;background:none;border:4px solid rgba(20,22,31,.35)}
+.sq i{position:absolute;font:600 10px/1 system-ui;font-style:normal;text-shadow:none;opacity:.75}.sq i.f{right:3px;bottom:2px}.sq i.r{left:3px;top:2px}.l i{color:#6f82b0}.d i{color:#d9dfee}
+.pl{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 12px;min-height:44px}
+.pl.act{border-color:var(--acc)}.pl b{white-space:nowrap}.pl .cap{flex:1;font-size:17px;letter-spacing:-2px;color:var(--mut);overflow:hidden;white-space:nowrap}
+.pl .ck{font:700 20px ui-monospace,monospace;background:#0b0d14;border-radius:8px;padding:2px 10px}.pl .ck.low{color:var(--bad)}
+#mv{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;height:230px;overflow:auto;font:14px/1.7 ui-monospace,monospace}
+#mv span{color:var(--mut)}#mv b{font-weight:500;margin-right:8px}
+#promo{position:absolute;inset:0;background:rgba(11,13,20,.75);display:none;align-items:center;justify-content:center;gap:10px;z-index:5;cursor:default}
+#promo button{font-size:44px;line-height:1;padding:8px 12px;background:#d9dfee;color:#14161f}
+label.f{display:flex;flex-direction:column;font-size:12px;color:var(--mut);gap:2px}
+</style></head><body>
+<header><a href="index.html">← Jogos</a><h1>♞ Xadrez</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
+<div class="bar">
+<label class="f">Modo<select id="mode"><option value="cpu">Contra o computador</option><option value="2p">2 jogadores (mesma tela)</option><option value="cvc">Computador × Computador</option></select></label>
+<label class="f">Sua cor<select id="side"><option value="w">Brancas</option><option value="b">Pretas</option><option value="r">Sorteio</option></select></label>
+<label class="f">Nível<select id="lv"><option value="1">Iniciante</option><option value="2">Fácil</option><option value="3" selected>Médio</option><option value="4">Difícil</option><option value="5">Mestre</option></select></label>
+<label class="f">Variante<select id="var"><option value="c">Clássico</option><option value="9">Chess960 (posição sorteada)</option><option value="k">Rei da Colina</option><option value="3">Três Xeques</option></select></label>
+<label class="f">Tempo<select id="tc"><option value="0">Sem relógio</option><option value="1,0">Bullet 1 min</option><option value="3,2">Blitz 3 min + 2 s</option><option value="5,0">Blitz 5 min</option><option value="10,0">Rápido 10 min</option><option value="15,10">Rápido 15 min + 10 s</option></select></label>
+<button id="new" class="primary">Novo jogo</button></div>
+<div class="game"><div class="left">
+<div class="pl" id="pT"></div>
+<div class="board" id="bd"></div>
+<div class="pl" id="pB"></div></div>
+<div class="panel"><div class="msg" id="msg"></div><div id="mv"></div>
+<div class="bar"><button id="undo">Desfazer</button><button id="flip">Virar tabuleiro</button><button id="hintb">Dica</button><button id="resign">Desistir</button></div>
+<p class="hint" id="rule"></p></div></div>
+</main><script src="xadrez-engine.js"></script><script>
+const $=i=>document.getElementById(i),G={K:'♚',Q:'♛',R:'♜',B:'♝',N:'♞',P:'♟'},NM={w:'Brancas',b:'Pretas'};
+const LV={1:{depth:1,rand:.4},2:{depth:2,rand:.08},3:{depth:3},4:{depth:5,time:1500},5:{depth:40,time:4000}};
+const RULES={c:'Xadrez clássico: roque, en passant, promoção à escolha, empate por afogamento, tripla repetição, 50 lances e material insuficiente.',
+ 9:'Chess960: a fileira inicial é sorteada. Para rocar, clique no rei e depois na torre.',k:'Rei da Colina: além do xeque-mate, vence quem levar o rei a uma das 4 casas centrais.',3:'Três Xeques: além do xeque-mate, vence quem der três xeques.'};
+let s,hist,sel,last,over,cfg,flip,clk,inc,tok=0,hint,lm,tick=0,busy=false;
+// ---- IA em Web Worker (para não travar o relógio); cai para execução direta se o Worker não estiver disponível ----
+let wk=null,pend={},rid=0;
+try{wk=new Worker('xadrez-worker.js');wk.onmessage=e=>{const cb=pend[e.data.id];delete pend[e.data.id];cb&&cb(e.data.m)};
+ wk.onerror=()=>{wk=null;const p=pend;pend={};for(const k in p)p[k].run()}}catch(e){wk=null}
+function think(st,o,cb){const run=()=>setTimeout(()=>cb(Chess.best(st,o)),30);if(!wk)return run();const id=++rid;cb.run=run;pend[id]=cb;wk.postMessage({id,s:st,o})}
+const human=t=>cfg.mode==='2p'||(cfg.mode==='cpu'&&t===cfg.me);
+function newGame(){const tc=$('tc').value.split(',').map(Number);cfg={mode:$('mode').value,me:$('side').value,lv:+$('lv').value,v:$('var').value,tc:tc[0]};
+ if(cfg.me==='r')cfg.me=Math.random()<.5?'w':'b';inc=(tc[1]||0)*1000;clk={w:cfg.tc*60000,b:cfg.tc*60000};
+ s=Chess.start(cfg.v);hist=[];sel=-1;last=null;over='';hint=null;flip=cfg.mode==='cpu'&&cfg.me==='b';tok++;busy=false;
+ $('rule').textContent=RULES[cfg.v];$('side').disabled=$('mode').value!=='cpu';draw();ai()}
+function result(){const w=Chess.varWinner(s);if(w)return NM[w]+' vencem — '+(s.v==='k'?'rei na colina!':'três xeques!');
+ if(!lm.length)return Chess.inCheck(s,s.t)?'Xeque-mate! '+NM[s.t==='w'?'b':'w']+' vencem.':'Empate por afogamento.';
+ if(s.h>=100)return'Empate pela regra dos 50 lances.';const k=Chess.key(s);if(hist.filter(h=>h.key===k).length>=2)return'Empate por tripla repetição.';
+ if(s.v!=='k'&&Chess.insufficient(s.b))return'Empate por material insuficiente.';return''}
+function play(m){hist.push({s,last,key:Chess.key(s),san:Chess.san(s,m),clk:{w:clk.w,b:clk.b}});if(cfg.tc)clk[s.t]+=inc;
+ s=Chess.make(s,m);last=m;sel=-1;hint=null;lm=Chess.legal(s);over=result();tick=Date.now();draw();ai()}
+function ai(){if(over||human(s.t))return;const my=tok,t0=Date.now();busy=true;
+ const o=Object.assign({},LV[cfg.lv]);if(cfg.tc&&o.time)o.time=Math.max(150,Math.min(o.time,clk[s.t]/25));
+ think(s,o,m=>{if(my!==tok)return;const go=()=>{if(my!==tok)return;busy=false;if(m&&!over)play(m)};const wait=(cfg.mode==='cvc'?500:250)-(Date.now()-t0);wait>0?setTimeout(go,wait):go()})}
+const tgt=m=>m.cs&&s.v==='9'?m.rf:m.t;
+function click(i){if(over||!human(s.t))return;const c=sel>=0?lm.filter(m=>m.f===sel&&tgt(m)===i):[];
+ if(c.length>1)return promo(c);if(c.length)return play(c[0]);
+ const p=s.b[i];sel=p!==' '&&(p<'a'?'w':'b')===s.t&&i!==sel?i:-1;draw()}
+function promo(c){const el=$('promo');el.innerHTML='';el.style.display='flex';for(const m of c){const b=document.createElement('button');b.textContent=G[m.pr.toUpperCase()]+'︎';
+  b.onclick=e=>{e.stopPropagation();el.style.display='none';play(m)};el.append(b)}el.onclick=()=>{el.style.display='none'}}
+const fmt=ms=>{ms=Math.max(0,ms);const t=Math.ceil(ms/1000);return ms<10000?(ms/1000).toFixed(1):(t/60|0)+':'+String(t%60).padStart(2,'0')};
+function caps(t){const cnt={};for(const p of s.b)if(p!==' ')cnt[p]=(cnt[p]||0)+1;let o='';
+ for(const[k,n]of[['Q',1],['R',2],['B',2],['N',2],['P',8]]){const p=t==='w'?k.toLowerCase():k;o+=(G[k]+'︎').repeat(Math.max(0,n-(cnt[p]||0)))}return o}
+function bar(el,t){const nm=cfg.mode==='2p'?NM[t]:cfg.mode==='cvc'?'Computador ('+NM[t]+')':t===cfg.me?'Você ('+NM[t]+')':'Computador ('+NM[t]+')';
+ el.className='pl'+(s.t===t&&!over?' act':'');el.innerHTML='<b></b><span class="cap"></span>'+(s.v==='3'?'<span>Xeques <b>'+(t==='w'?s.cw:s.cb)+'</b>/3</span>':'')+(cfg.tc?'<span class="ck" data-t="'+t+'"></span>':'');
+ el.children[0].textContent=nm;el.children[1].textContent=caps(t);clocks()}
+function clocks(){document.querySelectorAll('.ck').forEach(e=>{const v=clk[e.dataset.t];e.textContent=fmt(v);e.classList.toggle('low',v<20000)})}
+function draw(){lm=lm&&hist.length&&lm.s===s?lm:Chess.legal(s);lm.s=s;const chk=Chess.inCheck(s,s.t),tg=sel>=0?lm.filter(m=>m.f===sel):[];
+ $('msg').textContent=over||(NM[s.t]+' jogam'+(chk?' — xeque!':'')+(busy||!human(s.t)?' (computador pensando…)':''));
+ const bd=$('bd');bd.innerHTML='<div id="promo"></div>';
+ for(let v=0;v<64;v++){const i=flip?63-v:v,p=s.b[i],d=document.createElement('div'),r=i>>3,c=i&7,t=tg.find(m=>tgt(m)===i);
+  d.className='sq '+((r+c)%2?'d':'l')+(p===' '?'':p<'a'?' w':' k')+(last&&(last.f===i||last.t===i)?' last':'')+(hint&&(hint.f===i||tgt(hint)===i)?' hn':'')+(i===sel?' sel':'')+(chk&&p===(s.t==='w'?'K':'k')?' chk':'')
+   +(t?' to'+(p!==' '&&!t.cs?' cap':''):'')+(s.v==='k'&&(i===27||i===28||i===35||i===36)?' hill':'');
+  if(p!==' ')d.append(G[p.toUpperCase()]+'︎');
+  if((v&7)===0){const e=document.createElement('i');e.className='r';e.textContent=8-r;d.append(e)}if(v>55){const e=document.createElement('i');e.className='f';e.textContent='abcdefgh'[c];d.append(e)}
+  d.onclick=()=>click(i);bd.append(d)}
+ bar($('pT'),flip?'w':'b');bar($('pB'),flip?'b':'w');
+ const mv=$('mv');mv.innerHTML='';hist.forEach((h,n)=>{if(n%2===0){const e=document.createElement('span');e.textContent=(n/2+1)+'. ';mv.append(e)}const e=document.createElement('b');e.textContent=h.san;mv.append(e)});mv.scrollTop=mv.scrollHeight;
+ $('undo').disabled=cfg.mode==='cvc'||!hist.length;$('hintb').disabled=$('resign').disabled=!!over||cfg.mode==='cvc'}
+setInterval(()=>{if(!cfg||!cfg.tc||over||!hist.length)return;const n=Date.now();clk[s.t]-=n-tick;tick=n;
+ if(clk[s.t]<=0){clk[s.t]=0;over='Tempo esgotado! '+NM[s.t==='w'?'b':'w']+' vencem.';tok++;busy=false;draw()}else clocks()},100);
+$('undo').onclick=()=>{if(!hist.length)return;tok++;busy=false;let n=cfg.mode==='cpu'&&s.t===cfg.me&&hist.length>1?2:1;
+ while(n--&&hist.length){const h=hist.pop();s=h.s;last=h.last;clk=h.clk}sel=-1;hint=null;over='';lm=null;tick=Date.now();draw();ai()};
+$('flip').onclick=()=>{flip=!flip;draw()};
+$('hintb').onclick=()=>{if(over||!human(s.t))return;const my=tok,st=s;think(s,{depth:4,time:1200},m=>{if(my===tok&&st===s&&m){hint=m;draw()}})};
+$('resign').onclick=()=>{if(over||cfg.mode==='cvc')return;const l=cfg.mode==='cpu'?cfg.me:s.t;over=NM[l]+' desistiram. '+NM[l==='w'?'b':'w']+' vencem.';tok++;busy=false;draw()};
+$('new').onclick=newGame;$('mode').onchange=()=>{$('side').disabled=$('mode').value!=='cpu'};newGame();
+</script><script src="fx.js" defer></script></body></html>

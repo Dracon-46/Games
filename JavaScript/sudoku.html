@@ -1,0 +1,28 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sudoku</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css">
+<style>.board{grid-template-columns:repeat(9,1fr);border-color:var(--mut);border-radius:6px}.board>div{border:1px solid var(--line);font-size:clamp(16px,5vw,24px);color:var(--acc2);background:var(--bg)}
+.board>div.g{color:var(--fg);font-weight:700}.board>div.bx{background:var(--card)}.board>div.same{background:#2a3350}.board>div.sel{background:#3b4a7a}.board>div.bad{color:var(--bad)}
+#np{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;width:min(100%,360px)}#np button{padding:10px 0;font-size:18px}</style></head><body>
+<header><a href="index.html">← Jogos</a><h1>🔢 Sudoku</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
+<div class="bar"><select id="lv"><option value="36">Fácil</option><option value="46" selected>Médio</option><option value="54">Difícil</option></select><button id="new" class="primary">Novo jogo</button></div>
+<div class="msg" id="msg"></div><div class="board" id="bd"></div><div id="np"></div>
+<p class="hint">Selecione uma casa e digite 1–9 (ou use os botões). Números errados ficam vermelhos.</p>
+</main><script>
+const $=i=>document.getElementById(i);let sol,g,given,sel=-1;
+const sh=a=>{for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+const ok=(b,i,v)=>{const r=i/9|0,c=i%9,br=r-r%3,bc=c-c%3;for(let k=0;k<9;k++)if(b[r*9+k]===v||b[k*9+c]===v||b[(br+(k/3|0))*9+bc+k%3]===v)return false;return true};
+function fill(b){const i=b.indexOf(0);if(i<0)return true;for(const v of sh([1,2,3,4,5,6,7,8,9]))if(ok(b,i,v)){b[i]=v;if(fill(b))return true;b[i]=0}return false}
+function count(b,lim){const i=b.indexOf(0);if(i<0)return 1;let n=0;for(let v=1;v<=9&&n<lim;v++)if(ok(b,i,v)){b[i]=v;n+=count(b,lim-n);b[i]=0}return n}
+function start(){sol=Array(81).fill(0);fill(sol);g=sol.slice();let rem=+$('lv').value;
+ for(const i of sh([...Array(81).keys()])){if(!rem)break;const v=g[i];g[i]=0;if(count(g.slice(),2)===1)rem--;else g[i]=v}
+ given=g.map(v=>!!v);sel=-1;$('msg').textContent='';draw()}
+function draw(){$('bd').innerHTML='';const sv=sel>=0?g[sel]:0;g.forEach((v,i)=>{const d=document.createElement('div'),r=i/9|0,c=i%9;d.textContent=v||'';
+ d.className=(given[i]?'g ':'')+(((r/3|0)+(c/3|0))%2?'bx ':'')+(i===sel?'sel ':sv&&v===sv?'same ':'')+(v&&v!==sol[i]?'bad':'');
+ if(c%3===2&&c<8)d.style.borderRight='2px solid var(--mut)';if(r%3===2&&r<8)d.style.borderBottom='2px solid var(--mut)';d.onclick=()=>{sel=i;draw()};$('bd').append(d)});
+ if(g.every((v,i)=>v===sol[i]))$('msg').textContent='🎉 Sudoku resolvido!'}
+function put(v){if(sel<0||given[sel])return;g[sel]=v;draw()}
+for(let v=1;v<=10;v++){const b=document.createElement('button');b.textContent=v<10?v:'⌫';b.onclick=()=>put(v%10);$('np').append(b)}
+addEventListener('keydown',e=>{if(/^[1-9]$/.test(e.key))put(+e.key);else if(['Backspace','Delete','0'].includes(e.key))put(0);
+ else if(sel>=0&&e.key.startsWith('Arrow')){e.preventDefault();const d={ArrowUp:-9,ArrowDown:9,ArrowLeft:-1,ArrowRight:1}[e.key];const n=sel+d;if(n>=0&&n<81&&!(Math.abs(d)===1&&(n/9|0)!==(sel/9|0))){sel=n;draw()}}});
+$('new').onclick=start;$('lv').onchange=start;start();
+</script><script src="fx.js" defer></script></body></html>

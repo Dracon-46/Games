@@ -1,0 +1,49 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Falkyria Games</title>
+<meta name="description" content="Falkyria Games: um fliperama inteiro no navegador. 21 jogos, de xadrez com IA a experimentos em WebGL, sem instalar nada.">
+<link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css">
+<style>
+main{max-width:980px;gap:8px}
+.hero{text-align:center;padding:26px 0 10px}.hero img{width:76px;height:76px;filter:drop-shadow(0 0 18px rgba(122,162,255,.45))}
+.hero h1{font-size:clamp(34px,8vw,56px);margin:10px 0 4px;letter-spacing:-.02em;background:linear-gradient(90deg,#fff,#7aa2ff 55%,#6ee7b7);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{color:var(--mut);margin:0;font-size:17px}
+h2{width:100%;font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--mut);margin:26px 0 4px;display:flex;align-items:center;gap:12px}h2::after{content:"";flex:1;height:1px;background:var(--line)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;width:100%}
+.grid a{display:block;background:rgba(27,31,46,.78);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:16px;padding:18px;text-decoration:none;color:var(--fg);transition:transform .15s,border-color .15s,box-shadow .15s}
+.grid a:hover,.grid a:focus-visible{transform:translateY(-4px);border-color:var(--acc);box-shadow:0 10px 30px rgba(110,231,183,.12)}
+.grid span{font-size:38px;display:block}.grid b{display:block;margin-top:6px}.grid small{color:var(--mut)}
+.fx a{border-color:#3a4470;background:linear-gradient(140deg,rgba(122,162,255,.16),rgba(199,146,234,.10) 60%,rgba(27,31,46,.8))}.fx a:hover{border-color:#c792ea;box-shadow:0 10px 34px rgba(199,146,234,.22)}
+footer{margin-top:34px;color:var(--mut);font-size:14px;text-align:center;display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap}footer img{width:18px;height:18px}footer a{color:var(--fg)}
+</style></head><body><main>
+<div class="hero"><img src="falkyria.svg" alt="Falkyria"><h1>Falkyria Games</h1><p>Um fliperama inteiro no navegador. Escolha e jogue.</p></div>
+<h2>Vitrine gráfica</h2><div class="grid fx">
+<a href="enxame.html"><span>✨</span><b>Enxame</b><small>Milhares de partículas seguem você</small></a>
+<a href="nucleo.html"><span>🔮</span><b>Núcleo</b><small>Defenda a esfera viva</small></a>
+<a href="tunel.html"><span>🌌</span><b>Túnel</b><small>Voe por um túnel neon infinito</small></a>
+</div>
+<h2>Tabuleiro e estratégia</h2><div class="grid">
+<a href="xadrez.html"><span>♞</span><b>Xadrez</b><small>IA, 2 jogadores, variantes e relógio</small></a>
+<a href="damas.html"><span>⛀</span><b>Damas</b><small>Regras brasileiras, contra o computador</small></a>
+<a href="reversi.html"><span>⚫</span><b>Reversi</b><small>Vire as peças do adversário</small></a>
+<a href="velha.html"><span>⭕</span><b>Jogo da Velha</b><small>Tente vencer a máquina</small></a>
+</div>
+<h2>Arcade</h2><div class="grid">
+<a href="cobrinha.html"><span>🐍</span><b>Cobrinha</b><small>Coma, cresça, não bata</small></a>
+<a href="blocos.html"><span>🧱</span><b>Blocos</b><small>Encaixe peças e limpe linhas</small></a>
+<a href="orbita.html"><span>🪐</span><b>Órbita</b><small>Troque de anel e colete cristais</small></a>
+<a href="desvio.html"><span>🚀</span><b>Desvio</b><small>Sobreviva à chuva de meteoros</small></a>
+<a href="palavras.html"><span>🌧️</span><b>Chuva de Palavras</b><small>Digite antes que caiam</small></a>
+</div>
+<h2>Quebra-cabeça e raciocínio</h2><div class="grid">
+<a href="sudoku.html"><span>🔢</span><b>Sudoku</b><small>Três níveis de dificuldade</small></a>
+<a href="campo-minado.html"><span>💣</span><b>Campo Minado</b><small>Cuidado onde clica</small></a>
+<a href="tubos.html"><span>🔧</span><b>Tubos</b><small>Gire as peças e ligue tudo</small></a>
+<a href="labirinto.html"><span>🌀</span><b>Labirinto</b><small>Ache a saída o mais rápido que puder</small></a>
+<a href="hanoi.html"><span>🗼</span><b>Torre de Hanói</b><small>Mova a pilha, disco a disco</small></a>
+<a href="codigo.html"><span>🔐</span><b>Código Secreto</b><small>Deduza as 4 cores em 10 tentativas</small></a>
+<a href="memoria.html"><span>🃏</span><b>Memória</b><small>Ache os pares</small></a>
+<a href="forca.html"><span>🔤</span><b>Forca</b><small>Adivinhe a palavra</small></a>
+<a href="jokempo.html"><span>✊</span><b>Jokempô</b><small>Pedra, papel, tesoura</small></a>
+</div>
+<footer><img src="falkyria.svg" alt=""> Um produto <a href="https://dracon-46.github.io/Portifolio/">Falkyria</a> · <a href="https://github.com/Dracon-46/Games">código aberto no GitHub</a></footer>
+</main><script src="fx.js" defer></script></body></html>

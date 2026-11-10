@@ -1,0 +1,46 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chuva de Palavras</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css">
+<style>#in{font:inherit;font-size:18px;width:min(100%,400px);padding:10px 14px;border-radius:10px;border:2px solid var(--line);background:var(--card);color:var(--fg);outline:none;text-align:center;letter-spacing:1px}
+#in:focus{border-color:var(--acc2)}#in.bad{border-color:var(--bad)}</style></head><body>
+<header><a href="index.html">← Jogos</a><h1>🌧️ Chuva de Palavras</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
+<div class="bar"><span class="stat">Pontos <b id="sc">0</b></span><span class="stat">Vidas <b id="lv">3</b></span><span class="stat">Recorde <b id="hi">0</b></span><button id="new" class="primary">Novo jogo</button></div>
+<input id="in" type="text" placeholder="digite aqui" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="done" aria-label="Digite a palavra">
+<canvas id="c" width="400" height="380"></canvas>
+<div class="msg" id="msg"></div>
+<p class="hint">Digite as palavras antes que cheguem ao chão — sem acentos, não precisa de Enter. Espaço ou Enter limpam o campo. Cada palavra perdida custa uma vida.</p>
+</main><script>
+const WORDS='casa gato bola livro mesa porta janela carro praia festa amigo escola cidade floresta montanha rio mar sol lua estrela nuvem chuva vento fogo terra pedra flor folha fruta banana laranja morango abacaxi uva queijo leite arroz cebola tomate batata cenoura peixe cavalo coelho tigre macaco pato galinha formiga abelha borboleta tartaruga baleia golfinho barco ponte estrada trem bicicleta foguete planeta cometa tempo noite tarde semana inverno outono primavera verde azul amarelo vermelho branco preto dourado prata ouro ferro vidro madeira papel caneta caderno mochila sapato camisa casaco luva bolso espelho escada telhado jardim parede cozinha quarto cama cobertor toalha sabonete escova pente garrafa copo prato garfo faca colher panela forno geladeira teatro cinema pintura desenho viola flauta tambor piano jogo corrida salto mergulho futebol torcida medalha campo quadra rede sorriso alegria coragem amizade sonho segredo tesouro mapa castelo cavaleiro princesa gigante fantasma'.split(' ');
+const $=i=>document.getElementById(i),cv=$('c'),x=cv.getContext('2d'),inp=$('in'),W=400,H=380,FONT='600 19px system-ui,sans-serif';
+let st='idle',ws=[],fx=[],score=0,lives=3,t=0,nextW=0,last=0,hi=0;
+try{hi=+localStorage.getItem('palavras-hi')||0}catch(e){}
+$('hi').textContent=hi;
+const norm=s=>s.toLowerCase().normalize('NFD').replace(/[^a-z]/g,'');
+function hud(){$('sc').textContent=score;$('lv').textContent=lives}
+function start(){ws=[];fx=[];score=0;lives=3;t=0;nextW=.3;st='play';inp.value='';inp.className='';$('msg').textContent='';hud()}
+function spawn(){let w;do{w=WORDS[Math.random()*WORDS.length|0]}while(ws.some(o=>o.w===w));x.font=FONT;const tw=x.measureText(w).width;
+ ws.push({w,tw,x:8+Math.random()*(W-16-tw),y:-4,v:(24+Math.min(t,150)*.4)*(.8+Math.random()*.4)})}
+function over(){st='over';const rec=score>hi;if(rec){hi=score;try{localStorage.setItem('palavras-hi',hi)}catch(e){}$('hi').textContent=hi}
+ inp.value='';inp.className='';$('msg').textContent='💧 Fim de jogo! Pontos: '+score+(rec?' — novo recorde!':'')}
+function step(dt){t+=dt;nextW-=dt;if(nextW<=0||!ws.length){spawn();nextW=Math.max(.9,2.6-t*.02)}
+ for(let i=ws.length-1;i>=0;i--){const o=ws[i];o.y+=o.v*dt;if(o.y>H-4){ws.splice(i,1);lives--;fx.push({x:o.x+o.tw/2,y:H-10,c:'#ff6b81',a:1});hud();if(lives<=0)return over()}}}
+function typed(){const raw=inp.value;if(/\s/.test(raw)){inp.value='';inp.className='';return}
+ if(st==='idle')start();if(st!=='play')return;const v=norm(raw),i=ws.findIndex(o=>o.w===v);
+ if(i>=0){const o=ws[i];score+=v.length;fx.push({x:o.x+o.tw/2,y:o.y,c:'#6ee7b7',a:1});ws.splice(i,1);inp.value='';inp.className='';hud();return}
+ inp.className=v&&!ws.some(o=>o.w.startsWith(v))?'bad':''}
+function draw(dt){x.clearRect(0,0,W,H);x.fillStyle='#2d334a';x.fillRect(0,H-4,W,4);
+ const v=norm(inp.value);x.font=FONT;x.textAlign='left';x.textBaseline='alphabetic';
+ ws.forEach(o=>{const hit=v&&o.w.startsWith(v)?v.length:0;x.fillStyle=o.y>H*.7?'#ffd166':'#e9ebf3';x.fillText(o.w,o.x,o.y);
+  if(hit){x.fillStyle='#6ee7b7';x.fillText(o.w.slice(0,hit),o.x,o.y)}});
+ fx=fx.filter(f=>(f.a-=dt*2.5)>0);fx.forEach(f=>{x.globalAlpha=f.a;x.strokeStyle=f.c;x.lineWidth=3;x.beginPath();x.arc(f.x,f.y-6,(1-f.a)*30+4,0,7);x.stroke()});x.globalAlpha=1;
+ x.font='13px system-ui,sans-serif';x.fillStyle='#8f97b2';x.fillText('Pontos '+score,8,16);x.textAlign='right';x.fillText('Vidas '+'♥'.repeat(Math.max(0,lives)),W-8,16);
+ if(st!=='play'){x.fillStyle='rgba(8,10,16,.62)';x.fillRect(0,0,W,H);x.fillStyle='#fff';x.textAlign='center';x.font='bold 26px system-ui';
+  x.fillText(st==='over'?'Fim de jogo':'Chuva de Palavras',W/2,175);x.font='16px system-ui';x.fillText(st==='over'?'Pontos: '+score+' · toque para jogar de novo':'Toque aqui ou comece a digitar',W/2,205)}}
+function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;if(st==='play')step(dt);draw(dt);requestAnimationFrame(loop)}
+const foc=()=>{inp.focus();if(matchMedia('(pointer:coarse)').matches)inp.scrollIntoView({block:'start'})};
+inp.addEventListener('input',typed);
+inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();if(st==='over')start();inp.value='';inp.className=''}});
+addEventListener('keydown',e=>{if(document.activeElement!==inp&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&(e.key.length===1||e.key==='Enter')&&e.target.tagName!=='BUTTON')inp.focus()});
+cv.addEventListener('pointerdown',e=>{e.preventDefault();if(st!=='play')start();foc()});
+$('new').onclick=()=>{start();foc()};
+requestAnimationFrame(loop);
+</script><script src="fx.js" defer></script></body></html>

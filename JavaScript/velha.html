@@ -1,0 +1,22 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Jogo da Velha</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css">
+<style>.board{grid-template-columns:repeat(3,1fr);width:min(100%,330px);gap:6px;border:0;background:none}.board>div{background:var(--card);border:1px solid var(--line);border-radius:12px;font-size:64px;font-weight:700}
+.X{color:var(--acc2)}.O{color:var(--bad)}.win{background:#26324a!important;border-color:var(--acc)!important}</style></head><body>
+<header><a href="index.html">← Jogos</a><h1>⭕ Jogo da Velha</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
+<div class="bar"><select id="mode"><option value="hard">Máquina: impossível</option><option value="easy">Máquina: fácil</option><option value="2p">2 jogadores</option></select><button id="new" class="primary">Novo jogo</button></div>
+<div class="msg" id="msg"></div><div class="board" id="bd"></div>
+</main><script>
+const L=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]],$=i=>document.getElementById(i);
+let b,turn,done;
+const win=b=>{for(const l of L)if(b[l[0]]&&b[l[0]]===b[l[1]]&&b[l[1]]===b[l[2]])return l;return null};
+function mm(b,p){const w=win(b);if(w)return{s:b[w[0]]==='O'?1:-1};if(b.every(v=>v))return{s:0};let best=null;
+ for(let i=0;i<9;i++)if(!b[i]){b[i]=p;const s=mm(b,p==='O'?'X':'O').s;b[i]='';if(!best||(p==='O'?s>best.s:s<best.s))best={s,i}}return best}
+function start(){b=Array(9).fill('');turn='X';done=false;draw()}
+function draw(){const w=win(b),full=b.every(v=>v);done=!!w||full;
+ $('bd').innerHTML='';b.forEach((v,i)=>{const d=document.createElement('div');d.textContent=v;d.className=v+(w&&w.includes(i)?' win':'');d.onclick=()=>play(i);$('bd').append(d)});
+ $('msg').textContent=w?b[w[0]]+' venceu!':full?'Deu velha!':'Vez de '+turn}
+function play(i){if(done||b[i])return;const m=$('mode').value;if(m!=='2p'&&turn==='O')return;b[i]=turn;turn=turn==='X'?'O':'X';draw();
+ if(!done&&m!=='2p')setTimeout(()=>{const f=b.map((v,i)=>v?-1:i).filter(i=>i>=0);
+  const j=m==="easy"?f[Math.random()*f.length|0]:mm(b,'O').i;b[j]='O';turn='X';draw()},300)}
+$('new').onclick=start;$('mode').onchange=start;start();
+</script><script src="fx.js" defer></script></body></html>

@@ -1,0 +1,48 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Código Secreto</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css">
+<style>.rows{display:flex;flex-direction:column;gap:5px;width:min(100%,340px)}
+.row{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:4px 10px}
+.row.act{border-color:var(--acc2)}.row>small{width:18px;color:var(--mut);text-align:right}
+.pg{width:30px;height:30px;border-radius:50%;border:2px dashed var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#0b0d14;flex:none}
+.pg.f{border:0}.row.act .pg{cursor:pointer}.row.act .pg.nx{border-color:var(--fg)}
+.fb{margin-left:auto;display:flex;gap:10px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.fb .a{color:var(--acc)}.fb .p{color:var(--warn)}
+.pal{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;touch-action:manipulation}
+.pal button{width:42px;height:42px;border-radius:50%;padding:0;font-weight:700;color:#0b0d14;border:2px solid transparent}
+.pal button:hover{border-color:#fff}
+button:disabled{opacity:.45;cursor:default}
+.sec{display:flex;gap:8px;align-items:center;justify-content:center;min-height:32px}</style></head><body>
+<header><a href="index.html">← Jogos</a><h1>🔐 Código Secreto</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
+<div class="bar"><span class="stat">Tentativa <b id="tn">1</b>/10</span><button id="new" class="primary">Novo jogo</button></div>
+<div class="msg" id="msg"></div><div class="sec" id="sec"></div>
+<div class="rows" id="rows"></div>
+<div class="pal" id="pal"></div>
+<div class="bar"><button id="del">⌫ Apagar</button><button id="ok" class="primary">Enviar palpite</button></div>
+<p class="hint">Descubra o código de 4 cores (podem se repetir) em até 10 tentativas.<br><b style="color:var(--acc)">● n</b> = cores certas na posição certa · <b style="color:var(--warn)">○ n</b> = cores certas na posição errada.<br>Teclado: 1–6 escolhem a cor, Backspace apaga, Enter envia.</p>
+</main><script>
+const $=i=>document.getElementById(i),COL=['#ff6b81','#ffd166','#6ee7b7','#7aa2ff','#c792ea','#ff9f5a'],MAX=10;
+let secret,hist,g,done;
+function fb(a,s){let ex=0,pa=0;const ca=Array(6).fill(0),cs=Array(6).fill(0);
+ a.forEach((v,i)=>{if(v===s[i])ex++;else{ca[v]++;cs[s[i]]++}});for(let k=0;k<6;k++)pa+=Math.min(ca[k],cs[k]);return[ex,pa]}
+const peg=(v,x)=>v==null?'<span class="pg'+(x||'')+'"></span>':'<span class="pg f" style="background:'+COL[v]+'">'+(v+1)+'</span>';
+function start(){secret=Array.from({length:4},()=>Math.random()*6|0);hist=[];g=[null,null,null,null];done=false;$('msg').textContent='';$('sec').innerHTML='';draw()}
+function draw(){let h='';const nx=g.indexOf(null);
+ for(let r=0;r<MAX;r++){const p=hist[r],act=!done&&r===hist.length;
+  h+='<div class="row'+(act?' act':'')+'"><small>'+(r+1)+'</small>'+(p?p.g.map(v=>peg(v)).join(''):act?g.map((v,i)=>peg(v,i===nx?' nx':'').replace('<span','<span data-i="'+i+'"')).join(''):peg().repeat(4))
+   +'<span class="fb">'+(p?'<span class="a" title="cor e posição certas">● '+p.f[0]+'</span><span class="p" title="cor certa, posição errada">○ '+p.f[1]+'</span>':'')+'</span></div>'}
+ $('rows').innerHTML=h;$('tn').textContent=Math.min(MAX,hist.length+1);$('ok').disabled=done||nx>=0;$('del').disabled=done||g.every(v=>v==null)}
+function put(v){if(done)return;const i=g.indexOf(null);if(i<0)return;g[i]=v;draw()}
+function del(){if(done)return;let i=3;while(i>=0&&g[i]==null)i--;if(i>=0){g[i]=null;draw()}}
+function send(){if(done||g.includes(null))return;const f=fb(g,secret);hist.push({g,f});g=[null,null,null,null];
+ if(f[0]===4||hist.length===MAX){done=true;const win=f[0]===4;
+  $('msg').textContent=win?'🎉 Você decifrou o código em '+hist.length+(hist.length>1?' tentativas!':' tentativa!'):'😵 Acabaram as tentativas. O código era:';
+  $('sec').innerHTML=(win?'Código: ':'')+secret.map(v=>peg(v)).join('')}
+ draw()}
+$('pal').innerHTML=COL.map((c,i)=>'<button data-c="'+i+'" style="background:'+c+'" aria-label="Cor '+(i+1)+'">'+(i+1)+'</button>').join('');
+$('pal').onclick=e=>{const b=e.target.closest('[data-c]');if(b){b.blur();put(+b.dataset.c)}};
+$('rows').onclick=e=>{const p=e.target.closest('[data-i]');if(p&&!done){g[+p.dataset.i]=null;draw()}};
+$('del').onclick=function(){this.blur();del()};$('ok').onclick=function(){this.blur();send()};
+addEventListener('keydown',e=>{if(e.key>='1'&&e.key<='6'&&e.key.length===1){e.preventDefault();put(+e.key-1)}
+ else if(e.key==='Backspace'){e.preventDefault();del()}else if(e.key==='Enter'){e.preventDefault();send()}});
+$('new').onclick=function(){this.blur();start()};start();
+</script><script src="fx.js" defer></script></body></html>

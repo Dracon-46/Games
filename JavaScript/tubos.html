@@ -1,0 +1,42 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tubos</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css">
+<style>.board{gap:2px;border:0;aspect-ratio:auto;border-radius:0;overflow:visible;touch-action:manipulation}
+.board>div{aspect-ratio:1;background:var(--card);border-radius:5px;overflow:hidden}
+.board i{position:absolute;background:#4a5375}
+.board i.n{left:39%;width:22%;top:0;height:61%}.board i.s{left:39%;width:22%;bottom:0;height:61%}
+.board i.e{top:39%;height:22%;right:0;width:61%}.board i.w{top:39%;height:22%;left:0;width:61%}
+.board i.k{inset:29%;border-radius:50%}
+.board>div.on i{background:var(--acc)}
+.board>div.src i.k{inset:22%;background:var(--warn)}
+.board>div.cur{outline:2px solid var(--acc2);outline-offset:-2px}
+.board.won>div{cursor:default}</style></head><body>
+<header><a href="index.html">← Jogos</a><h1>🔧 Tubos</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
+<div class="bar"><select id="lv"><option value="5">Pequeno</option><option value="7" selected>Médio</option><option value="9">Grande</option></select>
+<span class="stat">Movimentos <b id="mv">0</b></span><span class="stat">Ligados <b id="cn">0</b></span><button id="new" class="primary">Novo jogo</button></div>
+<div class="msg" id="msg"></div><div class="board" id="bd"></div>
+<p class="hint">Toque em uma peça para girá-la 90°. Ligue todos os tubos à fonte amarela. No teclado: setas movem o cursor, Espaço gira.</p>
+</main><script>
+const $=i=>document.getElementById(i),DX=[0,1,0,-1],DY=[-1,0,1,0],NM='nesw';
+let N,t,els,src,mv,done,cur=-1;
+const rot=m=>(m<<1&15)|m>>3;
+function lit(){const on=new Uint8Array(N*N),s=[src];on[src]=1;
+ while(s.length){const c=s.pop(),cx=c%N,cy=c/N|0;for(let d=0;d<4;d++)if(t[c]>>d&1){const nx=cx+DX[d],ny=cy+DY[d];if(nx<0||ny<0||nx>=N||ny>=N)continue;
+  const n=ny*N+nx;if(!on[n]&&t[n]>>(d+2)%4&1){on[n]=1;s.push(n)}}}return on}
+function start(){N=+$('lv').value;t=new Uint8Array(N*N);src=(N>>1)*N+(N>>1);mv=0;done=false;cur=-1;
+ const inT=new Uint8Array(N*N),fr=[];const add=c=>{inT[c]=1;const cx=c%N,cy=c/N|0;for(let d=0;d<4;d++){const nx=cx+DX[d],ny=cy+DY[d];if(nx>=0&&ny>=0&&nx<N&&ny<N)fr.push([c,ny*N+nx,d])}};
+ add(src);while(fr.length){const[a,b,d]=fr.splice(Math.random()*fr.length|0,1)[0];if(inT[b])continue;t[a]|=1<<d;t[b]|=1<<(d+2)%4;add(b)}
+ do{for(let i=0;i<N*N;i++)for(let k=Math.random()*4|0;k--;)t[i]=rot(t[i])}while(lit().every(v=>v));
+ const bd=$('bd');bd.className='board';bd.style.gridTemplateColumns='repeat('+N+',1fr)';bd.innerHTML='';
+ els=Array.from(t,(m,i)=>{const d=document.createElement('div');d.onclick=()=>{cur=-1;turn(i)};bd.append(d);return d});
+ $('msg').textContent='';draw()}
+function draw(){const on=lit();let n=0;
+ els.forEach((d,i)=>{n+=on[i];d.className=(on[i]?'on':'')+(i===src?' src':'')+(i===cur?' cur':'');
+  let h='';for(let k=0;k<4;k++)if(t[i]>>k&1)h+='<i class="'+NM[k]+'"></i>';d.innerHTML=h+'<i class="k"></i>'});
+ $('mv').textContent=mv;$('cn').textContent=n+'/'+N*N;
+ if(n===N*N&&!done){done=true;$('bd').classList.add('won');$('msg').textContent='🎉 Tudo ligado em '+mv+' movimentos!'}}
+function turn(i){if(done)return;t[i]=rot(t[i]);mv++;draw()}
+addEventListener('keydown',e=>{const m={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]}[e.key];
+ if(m){e.preventDefault();if(cur<0)cur=src;else{const cx=Math.max(0,Math.min(N-1,cur%N+m[0])),cy=Math.max(0,Math.min(N-1,(cur/N|0)+m[1]));cur=cy*N+cx}draw()}
+ else if((e.key===' '||e.key==='Enter')&&cur>=0&&e.target.tagName!=='SELECT'){e.preventDefault();turn(cur)}});
+$('new').onclick=function(){this.blur();start()};$('lv').onchange=function(){this.blur();start()};start();
+</script><script src="fx.js" defer></script></body></html>

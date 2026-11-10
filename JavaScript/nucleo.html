@@ -1,0 +1,297 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Núcleo</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css">
+<style>
+html,body{height:100%}
+body{display:flex;flex-direction:column;height:100vh;height:100dvh;min-height:0;overflow:hidden}
+main{max-width:none;width:100%;flex:1;min-height:0;padding:10px 10px 8px;gap:8px}
+.bar{gap:8px}.stat{padding:4px 12px}.bar button{padding:5px 14px}
+.stage{position:relative;flex:1;min-height:0;width:100%;border-radius:12px;overflow:hidden}
+.stage canvas{position:absolute;left:0;top:0;width:100%;height:100%;max-width:none;display:block;cursor:crosshair;background:#07080d}
+.over{position:absolute;left:0;top:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:8px;text-align:center;padding:16px 16px 7%;pointer-events:none}
+.over.hide{display:none}.over button{pointer-events:auto;font-size:18px;padding:10px 28px}
+.over .msg{font-size:24px;min-height:0;text-shadow:0 2px 12px #000}.over .hint{max-width:420px;color:#c3c9de;text-shadow:0 1px 8px #000}
+@media (max-width:480px){.stat{font-size:14px;padding:3px 9px}.bar button{font-size:14px}header{padding:9px 14px}.hint.foot{display:none}}
+</style></head><body data-fx="off">
+<header><a href="index.html">← Jogos</a><h1>🔮 Núcleo</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
+<div class="bar"><span class="stat">Pontos <b id="sc">0</b></span><span class="stat">Onda <b id="wv">1</b></span><span class="stat">Núcleo <b id="hp">100%</b></span><span class="stat">Recorde <b id="hi">0</b></span><button id="novo">Novo jogo</button></div>
+<div class="stage" id="stage"><canvas id="c"></canvas>
+<div class="over" id="over"><div class="msg" id="msg">Proteja o núcleo</div>
+<p class="hint" id="sub">Gire o escudo de energia para rebater os projéteis de fogo antes que atinjam o núcleo.</p>
+<button class="primary" id="go">Jogar</button></div></div>
+<p class="hint foot">Aponte com o mouse ou o dedo para girar o escudo. No teclado: ← → ou A / D.</p>
+</main>
+<script src="gfx.js"></script>
+<script>
+(function(){
+'use strict';
+var $=function(id){return document.getElementById(id)};
+var cv=$('c'),stage=$('stage');
+var gl=GFX.context(cv,{alpha:false,antialias:true,depth:true,stencil:false});
+if(!gl){GFX.noGL(stage,'sem contexto');return}
+var RS=1.95,RC=1.1,CAM=5,TAU=Math.PI*2;
+
+/* ---------- shaders ---------- */
+var NOISE='float hash(vec2 p){p=fract(p*vec2(.3183,.3671));p+=dot(p,p.yx+19.19);return fract((p.x+p.y)*p.x*7.31);}'+
+'float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}';
+var VS_FULL='attribute vec2 aP;void main(){gl_Position=vec4(aP,0.,1.);}';
+var FS_BG=[NOISE,
+'uniform vec2 uRes;uniform vec2 uHalf;uniform float uT;uniform float uHealth;uniform float uFlash;',
+'void main(){vec2 uv=gl_FragCoord.xy/uRes;vec2 p=(uv*2.-1.)*uHalf;float l=length(p);',
+' vec3 gc=mix(vec3(.5,.12,.16),vec3(.14,.3,.55),uHealth);',
+' vec3 col=vec3(.026,.03,.05)+gc*(.28*exp(-l*.55)+.5*exp(-l*l*.35)*(.8+.2*sin(uT*1.3)));',
+' float n=noise(p*.7+vec2(uT*.03,0.))*noise(p*1.9-vec2(0.,uT*.05));col+=vec3(.3,.25,.6)*n*.09;',
+' vec2 sc=p*7.;vec2 ci=floor(sc);float h=hash(ci);',
+' col+=vec3(.7,.8,1.)*step(.8,h)*smoothstep(.09,0.,length(fract(sc)-.5-(vec2(hash(ci+7.),hash(ci+3.))-.5)*.7))*.35*(.6+.4*sin(uT*(1.+h)+h*30.));',
+' col+=vec3(1.,.3,.25)*uFlash*.25;',
+' gl_FragColor=vec4(col,1.);}'].join('\n');
+
+// esfera: deslocamento "líquido" no vértice, normal por diferenças finitas
+var VS_SPH=[
+'attribute vec3 aP;uniform vec3 uView;uniform float uT;uniform float uHit;uniform float uScale;uniform vec4 uImp[4];',
+'varying vec3 vN;varying vec3 vW;varying float vD;',
+'float field(vec3 p){float t=uT;',
+' float n=sin(p.x*3.1+t*1.3+sin(p.y*2.3-t*.7)*1.5)*sin(p.y*3.7-t*1.1+sin(p.z*2.9+t*.9)*1.5)*sin(p.z*3.3+t*.8+sin(p.x*2.1+t*.6)*1.5);',
+' n+=.45*sin(p.x*7.+t*2.)*sin(p.y*8.-t*1.7)*sin(p.z*6.+t*2.3);return n;}',
+'float disp(vec3 p){float d=field(p)*(.075+uHit*.2);',
+' for(int i=0;i<4;i++){vec4 m=uImp[i];float a=acos(clamp(dot(p,m.xyz),-1.,1.));float e=exp(-m.w*2.2);',
+'  d+=e*.15*sin(a*13.-m.w*16.)*exp(-a*1.8)-e*.2*exp(-a*a*9.);}',
+' return d;}',
+'void main(){vec3 p=aP;vec3 up=abs(p.y)>.9?vec3(1.,0.,0.):vec3(0.,1.,0.);',
+' vec3 t1=normalize(cross(up,p));vec3 t2=cross(p,t1);',
+' vec3 p1=normalize(p+t1*.025),p2=normalize(p+t2*.025);',
+' float d0=disp(p);vec3 P0=p*(1.+d0),P1=p1*(1.+disp(p1)),P2=p2*(1.+disp(p2));',
+' vec3 n=normalize(cross(P1-P0,P2-P0));if(dot(n,p)<0.)n=-n;',
+' vN=n;vW=P0*uScale;vD=d0;float w=uView.z-vW.z;',
+' gl_Position=vec4(vW.x*uView.x,vW.y*uView.y,-vW.z/3.*w,w);}'].join('\n');
+var FS_SPH=[
+'uniform vec3 uView;uniform float uT;uniform float uHealth;uniform float uFlash;',
+'varying vec3 vN;varying vec3 vW;varying float vD;',
+'void main(){vec3 N=normalize(vN);vec3 V=normalize(vec3(0.,0.,uView.z)-vW);',
+' float nv=max(dot(N,V),0.);float fr=pow(1.-nv,2.5);',
+' vec3 deep=mix(vec3(.2,.02,.06),vec3(.02,.05,.17),uHealth);',
+' vec3 mid=mix(vec3(.75,.16,.16),vec3(.1,.42,.72),uHealth);',
+' vec3 hot=mix(vec3(1.,.55,.3),vec3(.43,.91,.72),uHealth);',
+' vec3 rim=mix(vec3(1.,.42,.5),vec3(.55,.75,1.),uHealth);',
+' float h=smoothstep(-.09,.1,vD);',
+' vec3 col=mix(deep,mid,h*.75+.12*nv);col=mix(col,hot,smoothstep(.03,.15,vD)*.65);',
+' vec3 L1=normalize(vec3(cos(uT*.7)*1.3,.9,sin(uT*.7)*1.3+1.1));',
+' vec3 L2=normalize(vec3(-sin(uT*.45)*1.2,-.7*cos(uT*.3),1.));',
+' float d1=max(dot(N,L1),0.),d2=max(dot(N,L2),0.);',
+' col*=.3+.8*d1+.35*d2;',
+' col+=vec3(1.,.97,.9)*pow(max(dot(N,normalize(L1+V)),0.),80.)*1.1;',
+' col+=rim*pow(max(dot(N,normalize(L2+V)),0.),28.)*.5;',
+' col+=hot*.1*(.5+.5*sin(uT*2.2+vD*40.))*h;',
+' col+=rim*fr*1.25+vec3(.78,.57,.92)*pow(fr,4.)*.6;',
+' col*=mix(.4,1.,uHealth);col+=vec3(1.,.45,.35)*uFlash*(.35+fr);',
+' gl_FragColor=vec4(col,1.);}'].join('\n');
+
+// halo: órbitas calculadas inteiramente na GPU
+var VS_HALO=[
+'attribute vec4 aH;attribute vec2 aK;uniform vec3 uView;uniform float uT;uniform float uPx;uniform float uHealth;varying vec4 vC;',
+'void main(){float a=aH.y+uT*aK.x;vec3 q=vec3(cos(a),0.,sin(a))*aH.x;',
+' float ci=cos(aH.z),si=sin(aH.z);q=vec3(q.x,q.y*ci-q.z*si,q.y*si+q.z*ci);',
+' float cn=cos(aH.w),sn=sin(aH.w);q=vec3(q.x*cn-q.y*sn,q.x*sn+q.y*cn,q.z);',
+' float w=uView.z-q.z;gl_Position=vec4(q.x*uView.x,q.y*uView.y,-q.z/3.*w,w);',
+' gl_PointSize=uPx*aK.y*uView.z/w;',
+' vec3 c=mix(vec3(.48,.64,1.),vec3(.43,.91,.72),fract(aH.y*3.7));c=mix(c,vec3(.78,.57,.92),step(.8,fract(aH.y*9.1)));',
+' c=mix(vec3(1.,.45,.4),c,uHealth);',
+' vC=vec4(c,(.35+.3*sin(uT*3.+aH.y*20.))*(.4+.6*uHealth));}'].join('\n');
+var FS_PT='varying vec4 vC;void main(){vec2 q=gl_PointCoord-.5;float a=smoothstep(.5,0.,length(q));gl_FragColor=vec4(vC.rgb*vC.a*a*a,1.);}';
+
+// camada 2D no plano z=0: fogo, anéis de choque e escudo, tudo em um lote de quads
+var VS_Q='attribute vec2 aP;attribute vec2 aUV;attribute vec4 aQ;uniform vec2 uHalf;varying vec2 vUV;varying vec4 vQ;'+
+'void main(){vUV=aUV;vQ=aQ;gl_Position=vec4(aP/uHalf,0.,1.);}';
+var FS_Q=[NOISE,
+'uniform float uT;varying vec2 vUV;varying vec4 vQ;',
+'void main(){vec3 col=vec3(0.);',
+' if(vQ.x<.5){',                                   // projétil de fogo
+'  vec2 q=vUV-vec2(.5,0.);float tail=step(q.x,0.);float back=.5-vUV.x;',
+'  float n=noise(vec2(vUV.x*3.5+uT*10.+vQ.w*17.,vUV.y*4.5+vQ.w*5.))+.5*noise(vec2(vUV.x*8.+uT*17.,vUV.y*9.-vQ.w*3.));',
+'  q.x*=mix(1.,.32,tail);',
+'  float d=length(q)/.44+tail*(n-.75)*.75*back;',
+'  float I=smoothstep(1.,0.,d);I*=I;',
+'  vec3 c0=mix(vec3(1.,.2,.04),vec3(.3,.6,1.),vQ.z),c1=mix(vec3(1.,.8,.3),vec3(.5,1.,.85),vQ.z);',
+'  col=(mix(c0,c1,I)*I*1.7+vec3(1.)*pow(I,6.))*vQ.y;',
+' }else if(vQ.x<1.5){',                            // anel de onda de choque
+'  float r=length(vUV),a=vQ.y;float wd=.03+.07*(1.-a);float I=exp(-(r-a)*(r-a)/(wd*wd))*(1.-a)*(1.-a);',
+'  I+=.25*exp(-r*r*8.)*(1.-a)*(1.-a)*(1.-a);',
+'  col=mix(vec3(.45,.9,1.),vec3(1.,.35,.3),vQ.z)*I*1.3;',
+' }else{',                                         // arco do escudo
+'  float S='+(RS+.55).toFixed(3)+';float r=length(vUV)*S;float an=atan(vUV.y,vUV.x);',
+'  float da=abs(mod(an-vQ.y+3.14159265,6.2831853)-3.14159265);',
+'  float edge=smoothstep(vQ.z,vQ.z-.07,da);float dr=r-'+RS.toFixed(3)+';',
+'  float band=exp(-dr*dr/.0022)+.4*exp(-dr*dr/.03);',
+'  float fl=.7+.3*sin(da*46.-uT*9.)*sin(uT*5.+da*11.);',
+'  col=mix(vec3(.48,.64,1.),vec3(.43,.91,.72),.5+.5*sin(da*9.+uT*2.))*band*edge*fl*(1.+vQ.w*2.5);',
+'  col+=vec3(1.)*exp(-dr*dr/.0006)*edge*(.5+vQ.w);',
+'  col+=vec3(.35,.45,.7)*.07*exp(-dr*dr/.0008);',
+' }',
+' gl_FragColor=vec4(col,1.);}'].join('\n');
+var VS_SPK='attribute vec2 aP;attribute vec2 aC;uniform vec2 uHalf;uniform float uPx;varying vec4 vC;'+
+'void main(){gl_Position=vec4(aP/uHalf,0.,1.);gl_PointSize=uPx*(.5+aC.x);'+
+'vec3 c=aC.y<.5?mix(vec3(1.,.3,.05),vec3(1.,.9,.5),aC.x):mix(vec3(.3,.5,1.),vec3(.6,1.,.9),aC.x);vC=vec4(c,aC.x);}';
+
+var pBg=GFX.program(gl,VS_FULL,FS_BG,'nucleo/fundo'),pSph=GFX.program(gl,VS_SPH,FS_SPH,'nucleo/esfera'),
+    pHalo=GFX.program(gl,VS_HALO,FS_PT,'nucleo/halo'),pQ=GFX.program(gl,VS_Q,FS_Q,'nucleo/efeitos'),pSpk=GFX.program(gl,VS_SPK,FS_PT,'nucleo/faiscas');
+if(!pBg||!pSph||!pHalo||!pQ||!pSpk){GFX.noGL(stage,'shader');return}
+var drawFull=GFX.fullscreen(gl);
+var small=GFX.small();
+
+/* ---------- geometria ---------- */
+var LAT=small?44:72,LON=small?64:104,sv=[],si=[],i,j;
+for(i=0;i<=LAT;i++){var th=i/LAT*Math.PI;for(j=0;j<=LON;j++){var ph=j/LON*TAU;sv.push(Math.sin(th)*Math.cos(ph),Math.cos(th),Math.sin(th)*Math.sin(ph))}}
+for(i=0;i<LAT;i++)for(j=0;j<LON;j++){var a=i*(LON+1)+j,b=a+LON+1;si.push(a,b,a+1,a+1,b,b+1)}
+var bSph=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,bSph);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(sv),gl.STATIC_DRAW);
+var bIdx=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,bIdx);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array(si),gl.STATIC_DRAW);
+var NH=small?1400:3200,hv=new Float32Array(NH*6);
+for(i=0;i<NH;i++){var band=Math.random()<.6;hv[i*6]=band?1.34+Math.random()*.34:1.25+Math.random()*.5;hv[i*6+1]=Math.random()*TAU;
+  hv[i*6+2]=band?.35+(Math.random()-.5)*.16:(Math.random()-.5)*2.6;hv[i*6+3]=band?.5:Math.random()*TAU;
+  hv[i*6+4]=(.25+Math.random()*.5)*(band?1:(Math.random()<.5?-1:1));hv[i*6+5]=.6+Math.random()*1.2}
+var bHalo=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,bHalo);gl.bufferData(gl.ARRAY_BUFFER,hv,gl.STATIC_DRAW);
+var MAXQ=48,qv=new Float32Array(MAXQ*6*8),nq=0,bQ=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,bQ);gl.bufferData(gl.ARRAY_BUFFER,qv.byteLength,gl.DYNAMIC_DRAW);
+var CX=[-1,1,1,-1,1,-1],CY=[-1,-1,1,-1,1,1];
+function quad(cx,cy,ax,ay,bx,by,m,p1,p2,p3){if(nq>=MAXQ)return;var o=nq*48;
+  for(var k=0;k<6;k++){var u=CX[k],v=CY[k];qv[o++]=cx+ax*u+bx*v;qv[o++]=cy+ay*u+by*v;qv[o++]=u;qv[o++]=v;qv[o++]=m;qv[o++]=p1;qv[o++]=p2;qv[o++]=p3}nq++}
+var MAXS=small?700:1600,S=new Float32Array(MAXS*6),ns=0,sg=new Float32Array(MAXS*4),bS=gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER,bS);gl.bufferData(gl.ARRAY_BUFFER,sg.byteLength,gl.DYNAMIC_DRAW);
+function sparks(x,y,dx,dy,count,hue,speed){
+  for(var k=0;k<count&&ns<MAXS;k++){var o=ns*6,a=Math.random()*TAU,v=speed*(.2+Math.random()),f=Math.random()*.9;
+    S[o]=x;S[o+1]=y;S[o+2]=Math.cos(a)*v+dx*speed*f;S[o+3]=Math.sin(a)*v+dy*speed*f;S[o+4]=.5+Math.random()*.5;S[o+5]=hue;ns++}}
+
+/* ---------- estado do jogo ---------- */
+var state='demo',score=0,wave=1,health=5,deflects=0,streak=0,spawnT=0;
+var ang=Math.PI/2,target=ang,usePtr=false,keys={},shieldFlash=0,hit=0,flash=0,scale=1,hSmooth=1;
+var projs=[],rings=[],imps=[[0,0,1,99],[0,0,1,99],[0,0,1,99],[0,0,1,99]],impI=0,uImp=new Float32Array(16);
+var hi=GFX.hi('nucleo-hi'),halfW=3.3,halfH=3.3,W=2,H=2;
+var q=GFX.quality(1,0.45);
+function wrap(a){a=(a+Math.PI)%TAU;if(a<0)a+=TAU;return a-Math.PI}
+function hud(){$('sc').textContent=score;$('wv').textContent=wave;$('hp').textContent=Math.max(0,health*20)+'%';$('hi').textContent=hi.get()}
+function start(){state='play';score=0;wave=1;health=5;deflects=0;streak=0;spawnT=.6;projs=[];rings=[];hit=0;flash=0;
+  $('over').classList.add('hide');hud()}
+function gameOver(){state='over';var rec=hi.set(score);
+  $('msg').textContent=rec&&score>0?'Novo recorde! 🎉':'O núcleo se apagou';
+  $('sub').textContent='Você fez '+score+' pontos e chegou à onda '+wave+'.';
+  $('go').textContent='Jogar de novo';$('over').classList.remove('hide');hud()}
+function spawnProj(){
+  var sp=Math.min(3.2,1.15*(1+.1*(wave-1))),cv2=wave>=3?(Math.random()-.5)*2*Math.min(.8,.25+.05*wave):0;
+  projs.push({a:Math.random()*TAU,r:Math.min(Math.hypot(halfW,halfH),4.95)+.45,sp:sp,curve:cv2,st:0,life:1,seed:Math.random(),x:0,y:0,vx:0,vy:0});
+}
+function step(dt,t){
+  var rot=4.4*dt,k=false;
+  if(keys.ArrowLeft||keys.a){ang+=rot;k=true}if(keys.ArrowRight||keys.d){ang-=rot;k=true}
+  if(k){usePtr=false;target=ang}
+  if(state==='demo'&&!usePtr&&!k)target=Math.PI/2+Math.sin(t*.8)*1.4;
+  ang+=wrap(target-ang)*(1-Math.exp(-28*dt));ang=wrap(ang);
+  shieldFlash*=Math.exp(-7*dt);hit*=Math.exp(-1.6*dt);flash*=Math.exp(-5*dt);
+  var ht=state==='demo'?1:health/5;hSmooth+=(ht-hSmooth)*(1-Math.exp(-4*dt));
+  scale+=((state==='over'?.8:1)-scale)*(1-Math.exp(-3*dt));
+  for(var m=0;m<4;m++)imps[m][3]+=dt;
+  var hw=Math.max(.3,.52-.02*(wave-1));
+  if(state==='play'){
+    spawnT-=dt;
+    if(spawnT<=0){spawnProj();spawnT=Math.max(.38,1.5*Math.pow(.88,wave-1))*(.75+Math.random()*.5)}
+  }
+  for(var n=projs.length-1;n>=0;n--){var p=projs[n];
+    if(p.st===0){
+      p.r-=p.sp*dt;p.a+=p.curve*dt;var ca=Math.cos(p.a),sa=Math.sin(p.a);
+      p.x=p.r*ca;p.y=p.r*sa;p.vx=-p.sp*ca-p.r*p.curve*sa;p.vy=-p.sp*sa+p.r*p.curve*ca;
+      if(Math.random()<dt*40)sparks(p.x,p.y,0,0,1,0,.35);
+      if(!p.chk&&p.r<=RS+.06){p.chk=true;
+        if(Math.abs(wrap(p.a-ang))<hw+.07&&state==='play'){
+          p.st=1;p.life=1;var da=(Math.random()-.5)*.9,c2=Math.cos(p.a+da),s2=Math.sin(p.a+da),v=p.sp*1.5+1;p.vx=c2*v;p.vy=s2*v;
+          deflects++;streak++;score+=10*wave+Math.min(streak,20);shieldFlash=1;
+          sparks(p.x,p.y,ca,sa,small?26:46,1,3.2);rings.push({x:p.x,y:p.y,age:0,red:0,size:.9});
+          var w2=1+Math.floor(deflects/8);if(w2!==wave){wave=w2;rings.push({x:0,y:0,age:0,red:0,size:3.2})}
+          hud();
+        }
+      }
+      if(p.st===0&&p.r<=RC){
+        projs.splice(n,1);
+        sparks(p.x,p.y,ca,sa,small?40:80,0,3.6);rings.push({x:p.x,y:p.y,age:0,red:1,size:1.6});
+        imps[impI]=[ca,sa,.25,0];impI=(impI+1)%4;hit=1;flash=1;streak=0;
+        if(state==='play'){health--;hud();if(health<=0)gameOver()}
+      }
+    }else{
+      p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt*1.5;if(p.life<=0)projs.splice(n,1);
+    }
+  }
+  for(n=rings.length-1;n>=0;n--){rings[n].age+=dt*1.7;if(rings[n].age>=1)rings.splice(n,1)}
+  var dr=Math.exp(-2.2*dt);
+  for(n=0;n<ns;){var o=n*6;S[o+4]-=dt*1.1;
+    if(S[o+4]<=0){ns--;var l=ns*6;for(m=0;m<6;m++)S[o+m]=S[l+m];continue}
+    S[o]+=S[o+2]*dt;S[o+1]+=S[o+3]*dt;S[o+2]*=dr;S[o+3]*=dr;n++}
+}
+
+/* ---------- desenho ---------- */
+function render(t){
+  var n,o,asp=W/H;
+  if(asp>=1){halfH=3.3;halfW=3.3*asp}else{halfW=3.3;halfH=3.3/asp}
+  var hitAmt=Math.max(hit,(1-hSmooth)*.5),px=H/Math.max(halfH,1e-3)*.5;   // pixels por unidade de mundo
+  gl.viewport(0,0,W,H);gl.disable(gl.DEPTH_TEST);gl.disable(gl.BLEND);gl.depthMask(true);
+  gl.clear(gl.DEPTH_BUFFER_BIT);
+  gl.useProgram(pBg.prog);gl.uniform2f(pBg.u.uRes,W,H);gl.uniform2f(pBg.u.uHalf,halfW,halfH);gl.uniform1f(pBg.u.uT,t);
+  gl.uniform1f(pBg.u.uHealth,hSmooth);gl.uniform1f(pBg.u.uFlash,flash);drawFull(pBg.a.aP);
+  // esfera
+  gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LESS);
+  gl.useProgram(pSph.prog);
+  gl.uniform3f(pSph.u.uView,CAM/halfW,CAM/halfH,CAM);gl.uniform1f(pSph.u.uT,t);gl.uniform1f(pSph.u.uHit,hitAmt);
+  gl.uniform1f(pSph.u.uScale,scale*(1+.012*Math.sin(t*1.7)));gl.uniform1f(pSph.u.uHealth,hSmooth);gl.uniform1f(pSph.u.uFlash,flash);
+  for(n=0;n<4;n++)for(o=0;o<4;o++)uImp[n*4+o]=imps[n][o];
+  // direções de impacto normalizadas
+  for(n=0;n<4;n++){var l=Math.hypot(uImp[n*4],uImp[n*4+1],uImp[n*4+2])||1;uImp[n*4]/=l;uImp[n*4+1]/=l;uImp[n*4+2]/=l}
+  gl.uniform4fv(pSph.u.uImp,uImp);
+  gl.bindBuffer(gl.ARRAY_BUFFER,bSph);gl.enableVertexAttribArray(pSph.a.aP);gl.vertexAttribPointer(pSph.a.aP,3,gl.FLOAT,false,0,0);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,bIdx);gl.drawElements(gl.TRIANGLES,si.length,gl.UNSIGNED_SHORT,0);
+  // halo (testa profundidade contra a esfera, mistura aditiva)
+  gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE);gl.depthMask(false);
+  gl.useProgram(pHalo.prog);
+  gl.uniform3f(pHalo.u.uView,CAM/halfW,CAM/halfH,CAM);gl.uniform1f(pHalo.u.uT,t);gl.uniform1f(pHalo.u.uPx,Math.max(2,px*.045));gl.uniform1f(pHalo.u.uHealth,hSmooth);
+  gl.bindBuffer(gl.ARRAY_BUFFER,bHalo);
+  gl.enableVertexAttribArray(pHalo.a.aH);gl.vertexAttribPointer(pHalo.a.aH,4,gl.FLOAT,false,24,0);
+  gl.enableVertexAttribArray(pHalo.a.aK);gl.vertexAttribPointer(pHalo.a.aK,2,gl.FLOAT,false,24,16);
+  gl.drawArrays(gl.POINTS,0,NH);
+  gl.disableVertexAttribArray(pHalo.a.aK);
+  gl.disable(gl.DEPTH_TEST);
+  // quads: escudo, anéis, projéteis
+  nq=0;var hw=Math.max(.3,.52-.02*(wave-1)),SS=RS+.55;
+  if(state!=='over')quad(0,0,SS,0,0,SS,2,ang,hw,shieldFlash);
+  for(n=0;n<rings.length;n++){var r=rings[n];quad(r.x,r.y,r.size,0,0,r.size,1,r.age,r.red,0)}
+  for(n=0;n<projs.length;n++){var p=projs[n],v=Math.hypot(p.vx,p.vy)||1,dx=p.vx/v,dy=p.vy/v,sz=p.st?.34:.46,len=sz*(1.25+.25*Math.min(3,v));
+    quad(p.x-dx*len*.5,p.y-dy*len*.5,dx*len,dy*len,-dy*sz,dx*sz,0,p.st?Math.max(0,p.life):1,p.st,p.seed)}
+  gl.useProgram(pQ.prog);gl.uniform2f(pQ.u.uHalf,halfW,halfH);gl.uniform1f(pQ.u.uT,t);
+  gl.bindBuffer(gl.ARRAY_BUFFER,bQ);gl.bufferSubData(gl.ARRAY_BUFFER,0,qv.subarray(0,nq*48));
+  gl.enableVertexAttribArray(pQ.a.aP);gl.vertexAttribPointer(pQ.a.aP,2,gl.FLOAT,false,32,0);
+  gl.enableVertexAttribArray(pQ.a.aUV);gl.vertexAttribPointer(pQ.a.aUV,2,gl.FLOAT,false,32,8);
+  gl.enableVertexAttribArray(pQ.a.aQ);gl.vertexAttribPointer(pQ.a.aQ,4,gl.FLOAT,false,32,16);
+  if(nq)gl.drawArrays(gl.TRIANGLES,0,nq*6);
+  gl.disableVertexAttribArray(pQ.a.aUV);gl.disableVertexAttribArray(pQ.a.aQ);
+  // faíscas
+  if(ns){for(n=0;n<ns;n++){sg[n*4]=S[n*6];sg[n*4+1]=S[n*6+1];sg[n*4+2]=Math.min(1,S[n*6+4]);sg[n*4+3]=S[n*6+5]}
+    gl.useProgram(pSpk.prog);gl.uniform2f(pSpk.u.uHalf,halfW,halfH);gl.uniform1f(pSpk.u.uPx,Math.max(2.5,px*.06));
+    gl.bindBuffer(gl.ARRAY_BUFFER,bS);gl.bufferSubData(gl.ARRAY_BUFFER,0,sg.subarray(0,ns*4));
+    gl.enableVertexAttribArray(pSpk.a.aP);gl.vertexAttribPointer(pSpk.a.aP,2,gl.FLOAT,false,16,0);
+    gl.enableVertexAttribArray(pSpk.a.aC);gl.vertexAttribPointer(pSpk.a.aC,2,gl.FLOAT,false,16,8);
+    gl.drawArrays(gl.POINTS,0,ns);gl.disableVertexAttribArray(pSpk.a.aC)}
+  gl.disable(gl.BLEND);
+}
+GFX.loop(function(dt,t,ms){
+  if(GFX.lost)return;
+  q.push(ms);GFX.fit(cv,q.value,1.5);W=cv.width;H=cv.height;
+  step(dt,t);render(t);
+});
+
+/* ---------- entrada ---------- */
+function ptr(e){var r=cv.getBoundingClientRect(),x=e.clientX-(r.left+r.width/2),y=-(e.clientY-(r.top+r.height/2));
+  if(x*x+y*y>36){target=Math.atan2(y,x);usePtr=true}}
+cv.addEventListener('pointerdown',function(e){ptr(e);try{cv.setPointerCapture(e.pointerId)}catch(_){}} );
+cv.addEventListener('pointermove',ptr);
+addEventListener('keydown',function(e){var k=e.key.length===1?e.key.toLowerCase():e.key;
+  if(/^(Arrow(Left|Right)|[ad])$/.test(k)){keys[k]=true;e.preventDefault()}
+  else if((k==='Enter'||k===' ')&&state!=='play'&&e.target.tagName!=='BUTTON'){e.preventDefault();start()}});
+addEventListener('keyup',function(e){var k=e.key.length===1?e.key.toLowerCase():e.key;keys[k]=false});
+addEventListener('blur',function(){keys={}});
+$('go').onclick=start;$('novo').onclick=start;hud();
+window.__nucleo={get state(){return state},get score(){return score},get health(){return health},get wave(){return wave},get ang(){return ang},
+  get projs(){return projs.map(function(p){return {a:p.a,r:p.r,st:p.st}})},get q(){return q.value},get sparks(){return ns}};
+})();
+</script></body></html>
