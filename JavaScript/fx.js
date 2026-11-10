@@ -56,7 +56,7 @@
       // faixas de aurora verticais ondulando
       ' float au=sin(p.x*3.+r.y*5.+uT*.11)*.5+.5;au=pow(au,3.)*smoothstep(.15,.95,uv.y+q.x*.35-.2);',
       ' vec3 col=base*(.82+.3*f);',
-      ' col+=neb*band*band*.115*uAmt;',
+      ' col+=neb*band*band*.15*uAmt;',
       ' col+=cA*au*.045*uAmt;',
       ' col+=mix(cB,cA,.5)*near*.035*uAmt;',
       ' float st=stars(p,26.,.006)+.6*stars(p+7.3,47.,.011);',
