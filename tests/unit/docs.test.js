@@ -6,7 +6,7 @@ const path = require('node:path');
 const { jogos } = require('../helpers/catalogo');
 const RAIZ = path.join(__dirname, '..', '..');
 const ler = (f) => fs.readFileSync(path.join(RAIZ, f), 'utf8');
-const docs = ['README.md', 'CONTRIBUTING.md', 'CHANGELOG.md', 'CLAUDE.md', ...fs.readdirSync(path.join(RAIZ, 'docs')).map((f) => 'docs/' + f)];
+const docs = ['README.md', 'CONTRIBUTING.md', 'CHANGELOG.md', 'CLAUDE.md', 'SECURITY.md', ...fs.readdirSync(path.join(RAIZ, 'docs')).map((f) => 'docs/' + f)];
 
 test('README: cita todos os jogos e o total certo', () => {
   const s = ler('README.md');

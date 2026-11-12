@@ -9,7 +9,8 @@ async function close() { if (browser) { await browser.close(); browser = null; }
 async function open(opts = {}) {
   const b = await launch();
   const ctx = await b.newContext({ viewport: { width: opts.width || 1100, height: opts.height || 850 }, hasTouch: !!opts.touch });
-  if (opts.init) await ctx.addInitScript(opts.init);
+  // Os testes nunca falam com o Supabase de produção: sem opts.init, a camada online fica desligada.
+  await ctx.addInitScript(opts.init || (() => { window.FK_CONFIG = { url: '', key: '' }; }));
   const page = await ctx.newPage();
   page.errors = [];
   page.on('pageerror', (e) => page.errors.push('script: ' + e.message));

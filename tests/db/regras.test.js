@@ -7,14 +7,16 @@ const skip = !pg.available() && 'sem Postgres de teste';
 const A = '00000000-0000-0000-0000-00000000000a', B = '00000000-0000-0000-0000-00000000000b', C = '00000000-0000-0000-0000-00000000000c';
 const vazio = `json_build_object('t','w','v','c','b',(select json_agg(' '::text) from generate_series(1,64)))::jsonb`;
 const pos = (t) => `json_build_object('t','${t}','v','c','b',(select json_agg(' '::text) from generate_series(1,64)))::jsonb`;
-const novo = (id, nome) => pg.admin(`insert into auth.users(id, email, raw_user_meta_data) values('${id}', '${nome}@x', '{"username":"${nome}"}')`);
+const novo = (id, nome) => pg.admin(`insert into auth.users(id, email, raw_user_meta_data) values('${id}', '${nome}@x', '{"username":"${nome}","terms":"2026-11-12"}')`);
 
 test.before(() => { if (!skip) { pg.reset(); novo(A, 'Ana'); novo(B, 'Bia_2'); novo(C, 'Caio'); } });
 
 test('perfil nasce com o usuário; nome inválido ou repetido impede o cadastro', { skip }, () => {
   assert.strictEqual(pg.admin('select count(*) from public.profiles'), '3');
-  assert.throws(() => pg.admin(`insert into auth.users(email, raw_user_meta_data) values('d@x', '{"username":"ana"}')`), 'repetido, sem diferenciar maiúsculas');
-  for (const ruim of ['x', 'nome com espaco', 'abcdefghijklmnopq', 'ana!', '']) assert.throws(() => pg.admin(`insert into auth.users(email, raw_user_meta_data) values('e@x', '{"username":"${ruim}"}')`), ruim);
+  assert.throws(() => pg.admin(`insert into auth.users(email, raw_user_meta_data) values('d@x', '{"username":"ana","terms":"2026-11-12"}')`), 'repetido, sem diferenciar maiúsculas');
+  for (const ruim of ['x', 'nome com espaco', 'abcdefghijklmnopq', 'ana!', '']) assert.throws(() => pg.admin(`insert into auth.users(email, raw_user_meta_data) values('e@x', '{"username":"${ruim}","terms":"2026-11-12"}')`), ruim);
+  for (const semAceite of ['{"username":"Dudu"}', '{"username":"Dudu","terms":""}', '{"username":"Dudu","terms":"sim"}']) assert.throws(() => pg.admin(`insert into auth.users(email, raw_user_meta_data) values('f@x', '${semAceite}')`), /aceitar os termos/);
+  assert.strictEqual(pg.admin(`select terms_version from public.profiles where id = '${A}'`), '2026-11-12');
   assert.strictEqual(pg.as(null, `select username_available('ANA')`), 'f');
   assert.strictEqual(pg.as(null, `select username_available('Novo_1')`), 't');
   assert.strictEqual(pg.as(null, `select username_available('a b')`), 'f');
@@ -88,4 +90,31 @@ test('xadrez online: desistência, cancelar sala, cor escolhida e uma sala de es
   assert.deepStrictEqual([r.status, r.result, r.reason], ['done', 'w', 'desistência']);
   assert.strictEqual(JSON.parse(pg.as(A, `select chess_get('${g3.id}')`)).me, 'b');
   assert.strictEqual(pg.as(A, `select chess_get(gen_random_uuid())`), '');
+});
+
+test('LGPD: cada um exporta só os próprios dados', { skip }, () => {
+  assert.match(pg.fails(null, 'select my_data()'), /permission denied/);
+  const d = JSON.parse(pg.as(A, 'select my_data()'));
+  assert.strictEqual(d.conta.email, 'Ana@x'); assert.strictEqual(d.perfil.nome_de_jogador, 'Ana'); assert.strictEqual(d.perfil.termos_versao, '2026-11-12');
+  assert.deepStrictEqual(d.pontuacoes.map((p) => [p.jogo, p.pontos]), [['cobrinha', 50], ['tunel', 900]]);
+  assert.ok(d.partidas_de_xadrez.length >= 2 && d.partidas_de_xadrez.every((p) => ['brancas', 'pretas'].includes(p.minha_cor)));
+  assert.ok(!JSON.stringify(d).includes('Bia_2'), 'sem dados de outros jogadores');
+});
+
+test('LGPD: excluir a conta apaga usuário, perfil e pontuações, e encerra as partidas', { skip }, () => {
+  assert.match(pg.fails(null, 'select delete_account()'), /permission denied/);
+  const espera = JSON.parse(pg.as(B, `select chess_create(${vazio})`));
+  const g = JSON.parse(pg.as(C, `select chess_create(${vazio})`));
+  pg.as(A, `select chess_join('${g.code}')`);
+  const rC = +pg.admin(`select rating from profiles where id = '${C}'`);
+  pg.as(A, 'select delete_account()');
+  assert.strictEqual(pg.admin(`select count(*) from auth.users where id = '${A}'`), '0');
+  assert.strictEqual(pg.admin(`select count(*) from profiles where id = '${A}'`), '0');
+  assert.strictEqual(pg.admin(`select count(*) from scores where user_id = '${A}'`), '0');
+  assert.deepStrictEqual(JSON.parse(pg.admin(`select json_build_array(status, result, reason, black) from chess_games where id = '${g.id}'`)), ['done', 'w', 'desistência', null]);
+  assert.ok(+pg.admin(`select rating from profiles where id = '${C}'`) > rC, 'o adversário leva a vitória');
+  assert.strictEqual(pg.admin(`select count(*) from chess_games where id = '${espera.id}'`), '1', 'salas de outros jogadores ficam');
+  assert.deepStrictEqual(JSON.parse(pg.as(null, `select json_agg(t.username) from top_scores('cobrinha') t`)), ['Bia_2', 'Caio']);
+  pg.as(B, 'select delete_account()');
+  assert.strictEqual(pg.admin(`select count(*) from chess_games where id = '${espera.id}'`), '0', 'a sala de espera de quem saiu é apagada');
 });

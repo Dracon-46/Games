@@ -4,6 +4,8 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const SITE = path.join(__dirname, '..', '..', 'JavaScript');
+// Os mesmos cabeçalhos de segurança da produção (JavaScript/vercel.json), para os testes rodarem sob a mesma CSP.
+const HEADERS = Object.fromEntries(JSON.parse(fs.readFileSync(path.join(SITE, 'vercel.json'), 'utf8')).headers[0].headers.map((h) => [h.key, h.value]));
 const MIME = { html: 'text/html; charset=utf-8', js: 'text/javascript; charset=utf-8', css: 'text/css; charset=utf-8', svg: 'image/svg+xml', json: 'application/json' };
 
 function supabase() {
@@ -60,7 +62,7 @@ function start({ supabase: withDb = false, port = 0 } = {}) {
         if (api && (url.pathname.startsWith('/auth/v1/') || url.pathname.startsWith('/rest/v1/rpc/'))) return api(req, url, body, send);
         const file = path.join(SITE, decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname));
         if (!file.startsWith(SITE) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.writeHead(404); return res.end(); }
-        res.writeHead(200, { 'Content-Type': MIME[file.split('.').pop()] || 'application/octet-stream', 'Cache-Control': 'no-store' });
+        res.writeHead(200, { ...HEADERS, 'Content-Type': MIME[file.split('.').pop()] || 'application/octet-stream', 'Cache-Control': 'no-store' });
         res.end(fs.readFileSync(file));
       } catch (e) { send(500, { message: String(e.message).slice(0, 200) }); }
     });
