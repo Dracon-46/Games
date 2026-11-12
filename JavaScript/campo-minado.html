@@ -1,11 +1,11 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Campo Minado</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css">
+<title>Campo Minado</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css"><script src="icons.js"></script>
 <style>.board{gap:2px;border:0;aspect-ratio:auto}.board>div{aspect-ratio:1;background:#3a4262;border-radius:4px;font-weight:700;font-size:clamp(12px,3.6vw,18px)}
 .board>div.o{background:var(--card);cursor:default}.board>div.x{background:var(--bad)}
-.n1{color:#7aa2ff}.n2{color:#6ee7b7}.n3{color:#ff6b81}.n4{color:#c792ea}.n5{color:#ffd166}.n6{color:#5ad4e6}.n7{color:#fff}.n8{color:#aaa}</style></head><body>
-<header><a href="index.html">← Jogos</a><h1>💣 Campo Minado</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
+.n1{color:#7aa2ff}.n2{color:#6ee7b7}.n3{color:#ff6b81}.n4{color:#c792ea}.n5{color:#ffd166}.n6{color:#5ad4e6}.n7{color:#fff}.n8{color:#aaa}</style></head><body data-fx="off">
+<header><a class="back" href="index.html"><i data-ic="voltar"></i><span>Jogos</span></a><h1><i data-ic="minas"></i> Campo Minado</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
 <div class="bar"><select id="lv"><option value="9,10">Fácil</option><option value="12,24" selected>Médio</option><option value="16,48">Difícil</option></select>
-<span class="stat">🚩 <b id="fl">0</b></span><button id="fm">🚩 Modo bandeira</button><button id="new" class="primary">Novo jogo</button></div>
+<span class="stat"><i data-ic="bandeira"></i> <b id="fl">0</b></span><button id="fm"><i data-ic="bandeira"></i> Modo bandeira</button><button id="new" class="primary">Novo jogo</button></div>
 <div class="msg" id="msg"></div><div class="board" id="bd"></div>
 <p class="hint">Clique para abrir. Botão direito (ou "Modo bandeira" / toque longo) marca uma mina.</p>
 </main><script>
@@ -19,10 +19,10 @@ function start(){[N,M]=$('lv').value.split(',').map(Number);cells=Array.from({le
 function mines(safe){const ban=new Set([safe,...nb(safe)]);let k=0;while(k<M){const i=Math.random()*N*N|0;if(!cells[i].m&&!ban.has(i)){cells[i].m=1;k++}}
  cells.forEach((c,i)=>c.n=nb(i).filter(j=>cells[j].m).length)}
 function upd(){$('fl').textContent=M-cells.filter(c=>c.f).length}
-function flag(i){const c=cells[i];if(done||c.o)return;c.f^=1;c.d.textContent=c.f?'🚩':'';upd()}
+function flag(i){const c=cells[i];if(done||c.o)return;c.f^=1;c.d.innerHTML=c.f?icon('bandeira'):'';upd()}
 function open(i){if(done||cells[i].o||cells[i].f)return;if(first){mines(i);first=false}
- if(cells[i].m){done=true;cells.forEach(c=>{if(c.m)c.d.textContent='💣'});cells[i].d.classList.add('x');$('msg').textContent='💥 Você perdeu!';return}
+ if(cells[i].m){done=true;cells.forEach(c=>{if(c.m)c.d.innerHTML=icon('minas')});cells[i].d.classList.add('x');$('msg').textContent='Você perdeu!';return}
  const st=[i];while(st.length){const j=st.pop(),c=cells[j];if(c.o||c.f)continue;c.o=1;left--;c.d.className='o n'+c.n;c.d.textContent=c.n||'';if(!c.n)st.push(...nb(j))}
- if(!left){done=true;$('msg').textContent='🎉 Você venceu!'}}
+ if(!left){done=true;$('msg').textContent='Você venceu!'}}
 $('fm').onclick=()=>{flagMode=!flagMode;$('fm').classList.toggle('on',flagMode)};$('new').onclick=start;$('lv').onchange=start;start();
-</script><script src="fx.js" defer></script></body></html>
+</script><script src="config.js"></script><script src="conta.js"></script><script src="fx.js" defer></script></body></html>

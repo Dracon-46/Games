@@ -1,7 +1,7 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Blocos</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css">
-<style>.side{display:flex;gap:14px;align-items:flex-start;justify-content:center;width:100%}.col{display:flex;flex-direction:column;gap:10px;align-items:stretch}.pad{grid-template-columns:repeat(4,58px);grid-template-rows:52px}</style></head><body>
-<header><a href="index.html">← Jogos</a><h1>🧱 Blocos</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
+<title>Blocos</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css"><script src="icons.js"></script>
+<style>.side{display:flex;gap:14px;align-items:flex-start;justify-content:center;width:100%}.col{display:flex;flex-direction:column;gap:10px;align-items:stretch}.pad{grid-template-columns:repeat(4,58px);grid-template-rows:52px}</style></head><body data-fx="off">
+<header><a class="back" href="index.html"><i data-ic="voltar"></i><span>Jogos</span></a><h1><i data-ic="blocos"></i> Blocos</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
 <div class="side"><canvas id="c" width="243" height="486"></canvas>
 <div class="col"><span class="stat">Pontos<br><b id="sc">0</b></span><span class="stat">Linhas<br><b id="ln">0</b></span><span class="stat">Nível<br><b id="lv">1</b></span>
 <canvas id="nx" width="90" height="90"></canvas><button id="go" class="primary">Jogar</button><button id="pa">Pausar</button></div></div>
@@ -24,7 +24,7 @@ function step(){if(over||paused)return;if(fits(cur.c,cur.x,cur.y+1))cur.y++;else
 function lock(){cur.c.forEach(([a,b])=>{if(cur.y+b>=0)g[cur.y+b][cur.x+a]=COL[cur.k]});let n=0;
  for(let r=R-1;r>=0;)if(g[r].every(v=>v)){g.splice(r,1);g.unshift(Array(C).fill(0));n++}else r--;
  if(n){score+=[0,100,250,450,700,1000][n]*level;lines+=n;const l=1+(lines/8|0);if(l!==level){level=l;loop()}hud()}spawn()}
-function end(){over=true;clearInterval(timer)}
+function end(){window.Conta&&Conta.submit('blocos',score);over=true;clearInterval(timer)}
 function act(k){if(over||paused)return;
  if(k==='l'&&fits(cur.c,cur.x-1,cur.y))cur.x--;else if(k==='r'&&fits(cur.c,cur.x+1,cur.y))cur.x++;
  else if(k==='d'){if(fits(cur.c,cur.x,cur.y+1)){cur.y++;score++;hud()}}
@@ -40,4 +40,4 @@ function pause(){if(over)return;paused=!paused;$('pa').textContent=paused?'Conti
 addEventListener('keydown',e=>{const k={ArrowLeft:'l',ArrowRight:'r',ArrowDown:'d',ArrowUp:'u',' ':'s'}[e.key];if(k){e.preventDefault();act(k)}else if(e.key.toLowerCase()==='p')pause()});
 document.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>act(b.dataset.k));
 $('go').onclick=()=>{start();draw();$('go').blur()};$('pa').onclick=()=>{pause();$('pa').blur()};draw();
-</script><script src="fx.js" defer></script></body></html>
+</script><script src="config.js"></script><script src="conta.js"></script><script src="fx.js" defer></script></body></html>

@@ -1,0 +1,64 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gomoku</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css">
+<style>.board{position:relative;grid-template-columns:repeat(15,1fr);grid-template-rows:repeat(15,1fr);width:min(100%,525px);background:#b48f5a;border-color:#6d5431;touch-action:manipulation}
+.board svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.board>div::after{content:'';width:0;height:0;border-radius:50%;z-index:1}
+.board>div.b::after,.board>div.w::after{width:86%;height:86%;box-shadow:0 1px 3px rgba(0,0,0,.55)}
+.board>div.b::after{background:radial-gradient(circle at 35% 30%,#555b70,#14161f 60%)}
+.board>div.w::after{background:radial-gradient(circle at 35% 30%,#fff,#d5d9e6 70%)}
+.board>div.last::before{content:'';position:absolute;width:26%;height:26%;border-radius:50%;background:var(--bad);z-index:2}
+.board>div.win::after{box-shadow:0 0 0 3px var(--acc),0 0 12px 4px var(--acc)}
+.board>div.cur{outline:2px solid var(--acc2);outline-offset:-2px;border-radius:50%;z-index:3}
+@media (hover:hover){.board.live>div:not(.b):not(.w):hover::after{width:70%;height:70%;background:rgba(255,255,255,.35)}}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-1px;margin-right:5px;border:1px solid var(--mut)}
+.msg.good{color:var(--acc)}.msg.bad{color:var(--bad)}</style></head><body data-fx="off">
+<header><a class="back" href="index.html"><i data-ic="voltar"></i><span>Jogos</span></a><h1><i data-ic="gomoku"></i> Gomoku</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
+<div class="bar"><select id="lv" aria-label="Modo de jogo"><option value="1">Fácil</option><option value="2" selected>Difícil</option><option value="0">2 jogadores</option></select>
+<span class="stat"><span class="dot" style="background:#14161f"></span><span id="n1">Você</span></span><span class="stat"><span class="dot" style="background:#f1f3f8"></span><span id="n2">Computador</span></span>
+<span class="stat">Jogadas <b id="mv">0</b></span><button id="new" class="primary">Novo jogo</button></div>
+<div class="msg" id="msg"></div><div class="board" id="bd"></div>
+<p class="hint">As pretas começam. Coloque uma pedra por vez em um cruzamento livre; vence quem formar primeiro uma linha de cinco pedras seguidas na horizontal, vertical ou diagonal. Teclado: setas e Enter.</p>
+</main><script>
+const $=i=>document.getElementById(i),N=15,NN=225,DIRS=[[0,1],[1,0],[1,1],[1,-1]];
+const WIN=[];for(let r=0;r<N;r++)for(let c=0;c<N;c++)for(const[dr,dc]of DIRS){const er=r+4*dr,ec=c+4*dc;
+ if(er<N&&ec>=0&&ec<N)WIN.push([0,1,2,3,4].map(k=>(r+k*dr)*N+c+k*dc))}
+const THRU=Array.from({length:NN},()=>[]);WIN.forEach(w=>w.forEach(i=>THRU[i].push(w)));
+const NB=Array.from({length:NN},(_,i)=>{const r=i/N|0,c=i%N,o=[];for(let a=-2;a<=2;a++)for(let b=-2;b<=2;b++){const rr=r+a,cc=c+b;if((a||b)&&rr>=0&&cc>=0&&rr<N&&cc<N)o.push(rr*N+cc)}return o});
+const CEN=Array.from({length:NN},(_,i)=>(7-Math.max(Math.abs((i/N|0)-7),Math.abs(i%N-7)))*.1);
+// pontuação por janelas de 5: A = minhas pedras na janela (ataque), D = pedras do adversário (defesa)
+const A=[0,2,14,160,1e6],D=[0,1,10,120,3e4],EM=[0,1,10,80,5e4],EO=[0,1,8,60,900];
+const ic=n=>'<i data-ic="'+n+'">'+(window.icon?icon(n):'')+'</i> ';
+let bd,turn,lv,over,last,cur=-1,tok=0,cnt,line;
+$('bd').innerHTML='<svg viewBox="0 0 15 15" aria-hidden="true"><path stroke="#5a4220" stroke-width=".045" d="'+Array.from({length:N},(_,k)=>'M.5 '+(k+.5)+'H14.5M'+(k+.5)+' .5V14.5').join('')+'"/>'
+ +[[3,3],[11,3],[7,7],[3,11],[11,11]].map(p=>'<circle cx="'+(p[0]+.5)+'" cy="'+(p[1]+.5)+'" r=".13" fill="#5a4220"/>').join('')+'</svg>';
+const els=Array.from({length:NN},(_,i)=>{const d=document.createElement('div');d.onclick=()=>{cur=-1;human(i)};$('bd').append(d);return d});
+function cellScore(b,i,p){let s=CEN[i];for(const w of THRU[i]){let m=0,o=0;for(let k=0;k<5;k++){const v=b[w[k]];if(v===p)m++;else if(v)o++}if(!o)s+=A[m];else if(!m)s+=D[o]}return s}
+function cands(b,p,k){const out=[];for(let i=0;i<NN;i++)if(!b[i]&&NB[i].some(j=>b[j]))out.push({i,s:cellScore(b,i,p)});
+ out.sort((x,y)=>y.s-x.s);return k?out.slice(0,k):out}
+function evalAll(b,p){let s=0;for(const w of WIN){let m=0,o=0;for(let k=0;k<5;k++){const v=b[w[k]];if(v===p)m++;else if(v)o++}if(!o)s+=EM[m];else if(!m)s-=EO[o]}return s}
+function search(b,p,d,a,be){const cs=cands(b,p,8);if(!cs.length)return 0;if(cs[0].s>=A[4])return 1e7+d;
+ if(cs[0].s>=D[4])cs.length=1; // quatro do adversário: bloquear é forçado
+ for(const q of cs){b[q.i]=p;const v=d<=1?-evalAll(b,-p):-search(b,-p,d-1,-be,-a);b[q.i]=0;if(v>a)a=v;if(a>=be)break}return a}
+function aiMove(b,p,level){const cs=cands(b,p,0);if(!cs.length)return b[112]?b.indexOf(0):112;
+ if(cs[0].s>=D[4])return cs[0].i; // completa cinco ou bloqueia quatro
+ if(level===1){const ok=cs.filter(q=>q.s>=cs[0].s*.8).slice(0,4);return ok[Math.random()*ok.length|0].i}
+ let bv=-Infinity,bi=cs[0].i;for(const q of cs.slice(0,10)){b[q.i]=p;const v=-search(b,-p,3,-Infinity,-bv);b[q.i]=0;if(v>bv){bv=v;bi=q.i}}return bi}
+function five(b,i){const p=b[i],r=i/N|0,c=i%N;if(!p)return null;
+ for(const[dr,dc]of DIRS){const l=[i];for(const s of[1,-1]){let rr=r+s*dr,cc=c+s*dc;while(rr>=0&&cc>=0&&rr<N&&cc<N&&b[rr*N+cc]===p){l.push(rr*N+cc);rr+=s*dr;cc+=s*dc}}if(l.length>=5)return l}return null}
+const name=p=>lv?(p===1?'Você':'Computador'):(p===1?'Pretas':'Brancas');
+function say(h,cl){$('msg').innerHTML=h;$('msg').className='msg'+(cl?' '+cl:'')}
+function render(){els.forEach((d,i)=>d.className=(bd[i]===1?'b':bd[i]===-1?'w':'')+(i===last?' last':'')+(i===cur?' cur':'')+(line&&line.includes(i)?' win':''));
+ $('bd').classList.toggle('live',!over&&!(lv&&turn===-1));$('mv').textContent=cnt;
+ if(!over)say(lv?(turn===1?'Sua vez (pretas)':'Computador pensando…'):'Vez das '+(turn===1?'pretas':'brancas'))}
+function start(){tok++;lv=+$('lv').value;bd=Array(NN).fill(0);turn=1;over=false;last=-1;cur=-1;cnt=0;line=null;$('n1').textContent=name(1);$('n2').textContent=name(-1);render()}
+function place(i){if(over||bd[i])return false;bd[i]=turn;last=i;cnt++;line=five(bd,i);
+ if(line){over=true;render();if(lv)turn===1?say(ic('trofeu')+'Você venceu com cinco em linha!','good'):say(ic('caveira')+'O computador fez cinco em linha.','bad');else say(ic('trofeu')+name(turn)+' venceram!','good')}
+ else if(cnt===NN){over=true;render();say(ic('bandeira')+'Empate: o tabuleiro encheu.')}
+ else{turn=-turn;render();if(lv&&turn===-1){const k=tok;setTimeout(()=>{if(k===tok)place(aiMove(bd,-1,lv))},350)}}
+ return true}
+function human(i){if(over||(lv&&turn===-1))return;place(i)}
+addEventListener('keydown',e=>{const t=e.target.tagName;if(t==='SELECT')return;const m={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]}[e.key];
+ if(m){e.preventDefault();cur=cur<0?(last<0?112:last):Math.max(0,Math.min(14,(cur/N|0)+m[1]))*N+Math.max(0,Math.min(14,cur%N+m[0]));render()}
+ else if((e.key===' '||e.key==='Enter')&&cur>=0&&t!=='BUTTON'){e.preventDefault();human(cur)}});
+$('new').onclick=function(){this.blur();start()};$('lv').onchange=function(){this.blur();start()};start();
+</script><script src="icons.js"></script><script src="config.js"></script><script src="conta.js"></script><script src="fx.js" defer></script></body></html>

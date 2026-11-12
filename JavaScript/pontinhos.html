@@ -1,0 +1,71 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pontinhos</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css">
+<style>#bd{display:block;width:min(100%,480px);background:var(--card);border:2px solid var(--line);border-radius:12px;cursor:pointer;user-select:none;touch-action:manipulation}
+#bd rect{fill:transparent;transition:fill .25s}#bd rect.p1{fill:rgba(122,162,255,.5)}#bd rect.p2{fill:rgba(255,107,129,.5)}
+#bd line{stroke:#333a55;stroke-linecap:round;transition:stroke .15s}
+#bd line.hov{stroke:var(--acc)}#bd line.p1{stroke:#7aa2ff}#bd line.p2{stroke:#ff6b81}#bd line.last{stroke:var(--warn)}
+#bd circle{fill:var(--fg)}#bd circle.kc{fill:none;stroke:var(--acc);stroke-dasharray:.06 .06}
+.dot{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:5px}
+.stat.act{border-color:var(--acc)}.msg.good{color:var(--acc)}.msg.bad{color:var(--bad)}</style></head><body data-fx="off">
+<header><a class="back" href="index.html"><i data-ic="voltar"></i><span>Jogos</span></a><h1><i data-ic="pontinhos"></i> Pontinhos</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
+<div class="bar"><select id="sz" aria-label="Tamanho"><option value="4" selected>4 × 4</option><option value="6">6 × 6</option></select>
+<select id="md" aria-label="Modo de jogo"><option value="1" selected>Contra o computador</option><option value="0">2 jogadores</option></select>
+<button id="new" class="primary">Novo jogo</button></div>
+<div class="bar"><span class="stat" id="t1"><span class="dot" style="background:#7aa2ff"></span><span id="n1">Você</span> <b id="s1">0</b></span><span class="stat" id="t2"><span class="dot" style="background:#ff6b81"></span><span id="n2">Computador</span> <b id="s2">0</b></span></div>
+<div class="msg" id="msg"></div>
+<svg id="bd" role="img" aria-label="Tabuleiro de pontinhos"></svg>
+<p class="hint">Na sua vez, toque entre dois pontos vizinhos para traçar uma linha. Quem fecha o quarto lado de um quadrado fica com ele e joga de novo. Vence quem tiver mais quadrados quando todos estiverem fechados. Teclado: setas movem o cursor e Enter traça a linha em destaque.</p>
+</main><script>
+const $=i=>document.getElementById(i),P=.5,rnd=a=>a[Math.random()*a.length|0];
+const ic=n=>'<i data-ic="'+n+'">'+(window.icon?icon(n):'')+'</i> ';
+let N,HN,EN,E,B,own,turn,vs,over,sc,last,hov,kx,ky,kb,tok=0,eEl,bEl,kEl;
+// arestas: 0..HN-1 horizontais (linha r, coluna c), HN.. verticais
+const edgesOf=b=>{const r=b/N|0,c=b%N;return[r*N+c,(r+1)*N+c,HN+r*(N+1)+c,HN+r*(N+1)+c+1]};
+function boxesOf(e){const o=[];if(e<HN){const r=e/N|0,c=e%N;if(r>0)o.push((r-1)*N+c);if(r<N)o.push(r*N+c)}
+ else{const k=e-HN,r=k/(N+1)|0,c=k%(N+1);if(c>0)o.push(r*N+c-1);if(c<N)o.push(r*N+c)}return o}
+const sides=(S,b)=>edgesOf(b).reduce((s,e)=>s+S[e],0);
+function geo(e){if(e<HN){const r=e/N|0,c=e%N;return[c,r,c+1,r]}const k=e-HN,r=k/(N+1)|0,c=k%(N+1);return[c,r,c,r+1]}
+// quantos quadrados o adversário fecha em sequência depois de eu traçar a aresta e
+function chainAfter(S0,e){const S=S0.slice();S[e]=1;let n=0,f=true;
+ while(f){f=false;for(let b=0;b<N*N;b++){const es=edgesOf(b).filter(x=>!S[x]);if(es.length===1){S[es[0]]=1;n+=boxesOf(es[0]).filter(q=>sides(S,q)===4).length;f=true}}}return n}
+function aiPick(S){const free=[];for(let e=0;e<EN;e++)if(!S[e])free.push(e);
+ let m=free.filter(e=>boxesOf(e).some(b=>sides(S,b)===3));if(m.length)return rnd(m); // fecha um quadrado
+ m=free.filter(e=>boxesOf(e).every(b=>sides(S,b)<2));if(m.length)return rnd(m); // não entrega o terceiro lado
+ let best=1e9;m=[];for(const e of free){const c=chainAfter(S,e);if(c<best){best=c;m=[e]}else if(c===best)m.push(e)}return rnd(m)} // entrega a menor cadeia
+const name=p=>vs?(p===1?'Você':'Computador'):'Jogador '+p;
+function say(h,cl){$('msg').innerHTML=h;$('msg').className='msg'+(cl?' '+cl:'')}
+const kEdge=()=>(kx+ky)%2?(ky%2?HN+(ky-1)/2*(N+1)+kx/2:ky/2*N+(kx-1)/2):-1;
+function render(){const he=kb?kEdge():hov,can=!over&&!(vs&&turn===2);
+ eEl.forEach((l,e)=>l.setAttribute('class',E[e]?(e===last?'last':'p'+own[e]):e===he&&can?'hov':''));
+ bEl.forEach((r,b)=>r.setAttribute('class',B[b]?'p'+B[b]:''));
+ kEl.setAttribute('visibility',kb&&can?'visible':'hidden');kEl.setAttribute('cx',kx/2);kEl.setAttribute('cy',ky/2);
+ $('s1').textContent=sc[1];$('s2').textContent=sc[2];$('t1').classList.toggle('act',!over&&turn===1);$('t2').classList.toggle('act',!over&&turn===2);
+ if(!over)say(vs?(turn===1?'Sua vez':'Vez do computador…'):'Vez do '+name(turn))}
+function start(){tok++;N=+$('sz').value;vs=+$('md').value;HN=(N+1)*N;EN=2*HN;E=Array(EN).fill(0);own=Array(EN).fill(0);B=Array(N*N).fill(0);
+ turn=1;over=false;sc=[0,0,0];last=hov=-1;kx=1;ky=0;kb=false;$('n1').textContent=name(1);$('n2').textContent=name(2);
+ const sw=.016*N,dr=.024*N,sv=$('bd');sv.setAttribute('viewBox',-P+' '+-P+' '+(N+2*P)+' '+(N+2*P));let h='';
+ for(let b=0;b<N*N;b++)h+='<rect x="'+(b%N+.06)+'" y="'+((b/N|0)+.06)+'" width=".88" height=".88" rx=".08"/>';
+ for(let e=0;e<EN;e++){const g=geo(e);h+='<line x1="'+g[0]+'" y1="'+g[1]+'" x2="'+g[2]+'" y2="'+g[3]+'" stroke-width="'+sw+'"/>'}
+ for(let r=0;r<=N;r++)for(let c=0;c<=N;c++)h+='<circle cx="'+c+'" cy="'+r+'" r="'+dr+'"/>';
+ h+='<circle class="kc" r="'+dr*2.4+'" stroke-width="'+sw*.5+'"/>';sv.innerHTML=h;
+ bEl=[...sv.querySelectorAll('rect')];eEl=[...sv.querySelectorAll('line')];kEl=sv.querySelector('.kc');render()}
+function move(e){if(over||e<0||e>=EN||E[e])return false;E[e]=1;own[e]=turn;last=e;let n=0;
+ for(const b of boxesOf(e))if(sides(E,b)===4){B[b]=turn;n++}sc[turn]+=n;
+ if(sc[1]+sc[2]===N*N){over=true;render();const a=sc[1],c=sc[2],s=Math.max(a,c)+' × '+Math.min(a,c);
+  if(a===c)say(ic('bandeira')+'Empate em '+s+'!');else if(vs)a>c?say(ic('trofeu')+'Você venceu por '+s+'!','good'):say(ic('caveira')+'O computador venceu por '+s+'.','bad');
+  else say(ic('trofeu')+name(a>c?1:2)+' venceu por '+s+'!','good');return true}
+ if(!n)turn=3-turn;render();if(vs&&turn===2){const k=tok;setTimeout(()=>{if(k===tok)move(aiPick(E))},n?380:600)}return true}
+// aresta livre mais próxima do ponteiro (área de toque generosa: metade de cada quadrado)
+function nearest(ev){const q=$('bd').getBoundingClientRect(),w=N+2*P,lim=N-1e-6;
+ const x=Math.max(0,Math.min(lim,(ev.clientX-q.left)/q.width*w-P)),y=Math.max(0,Math.min(lim,(ev.clientY-q.top)/q.height*w-P));
+ const cx=x|0,cy=y|0,fx=x-cx,fy=y-cy,c=[[fy,cy*N+cx],[1-fy,(cy+1)*N+cx],[fx,HN+cy*(N+1)+cx],[1-fx,HN+cy*(N+1)+cx+1]].filter(a=>!E[a[1]]).sort((a,b)=>a[0]-b[0]);
+ return c.length&&(c.length===1||c[0][0]<=.45)?c[0][1]:-1}
+function human(e){if(over||(vs&&turn===2))return;move(e)}
+$('bd').addEventListener('pointermove',ev=>{if(ev.pointerType==='touch')return;const e=nearest(ev);if(e!==hov||kb){hov=e;kb=false;render()}});
+$('bd').addEventListener('pointerleave',()=>{hov=-1;render()});
+$('bd').addEventListener('click',ev=>{kb=false;hov=-1;human(nearest(ev))});
+addEventListener('keydown',e=>{const t=e.target.tagName;if(t==='SELECT')return;const m={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]}[e.key];
+ if(m){e.preventDefault();if(kb){kx=Math.max(0,Math.min(2*N,kx+m[0]));ky=Math.max(0,Math.min(2*N,ky+m[1]))}kb=true;render()}
+ else if((e.key===' '||e.key==='Enter')&&kb&&t!=='BUTTON'){e.preventDefault();human(kEdge())}});
+$('new').onclick=function(){this.blur();start()};$('sz').onchange=$('md').onchange=function(){this.blur();start()};start();
+</script><script src="icons.js"></script><script src="config.js"></script><script src="conta.js"></script><script src="fx.js" defer></script></body></html>

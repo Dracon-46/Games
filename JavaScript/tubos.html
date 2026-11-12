@@ -1,5 +1,5 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Tubos</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css">
+<title>Tubos</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css"><script src="icons.js"></script>
 <style>.board{gap:2px;border:0;aspect-ratio:auto;border-radius:0;overflow:visible;touch-action:manipulation}
 .board>div{aspect-ratio:1;background:var(--card);border-radius:5px;overflow:hidden}
 .board i{position:absolute;background:#4a5375}
@@ -9,8 +9,8 @@
 .board>div.on i{background:var(--acc)}
 .board>div.src i.k{inset:22%;background:var(--warn)}
 .board>div.cur{outline:2px solid var(--acc2);outline-offset:-2px}
-.board.won>div{cursor:default}</style></head><body>
-<header><a href="index.html">← Jogos</a><h1>🔧 Tubos</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
+.board.won>div{cursor:default}</style></head><body data-fx="off">
+<header><a class="back" href="index.html"><i data-ic="voltar"></i><span>Jogos</span></a><h1><i data-ic="tubos"></i> Tubos</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
 <div class="bar"><select id="lv"><option value="5">Pequeno</option><option value="7" selected>Médio</option><option value="9">Grande</option></select>
 <span class="stat">Movimentos <b id="mv">0</b></span><span class="stat">Ligados <b id="cn">0</b></span><button id="new" class="primary">Novo jogo</button></div>
 <div class="msg" id="msg"></div><div class="board" id="bd"></div>
@@ -33,10 +33,10 @@ function draw(){const on=lit();let n=0;
  els.forEach((d,i)=>{n+=on[i];d.className=(on[i]?'on':'')+(i===src?' src':'')+(i===cur?' cur':'');
   let h='';for(let k=0;k<4;k++)if(t[i]>>k&1)h+='<i class="'+NM[k]+'"></i>';d.innerHTML=h+'<i class="k"></i>'});
  $('mv').textContent=mv;$('cn').textContent=n+'/'+N*N;
- if(n===N*N&&!done){done=true;$('bd').classList.add('won');$('msg').textContent='🎉 Tudo ligado em '+mv+' movimentos!'}}
+ if(n===N*N&&!done){done=true;$('bd').classList.add('won');$('msg').textContent='Tudo ligado em '+mv+' movimentos!'}}
 function turn(i){if(done)return;t[i]=rot(t[i]);mv++;draw()}
 addEventListener('keydown',e=>{const m={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]}[e.key];
  if(m){e.preventDefault();if(cur<0)cur=src;else{const cx=Math.max(0,Math.min(N-1,cur%N+m[0])),cy=Math.max(0,Math.min(N-1,(cur/N|0)+m[1]));cur=cy*N+cx}draw()}
  else if((e.key===' '||e.key==='Enter')&&cur>=0&&e.target.tagName!=='SELECT'){e.preventDefault();turn(cur)}});
 $('new').onclick=function(){this.blur();start()};$('lv').onchange=function(){this.blur();start()};start();
-</script><script src="fx.js" defer></script></body></html>
+</script><script src="config.js"></script><script src="conta.js"></script><script src="fx.js" defer></script></body></html>

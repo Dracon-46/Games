@@ -1,5 +1,5 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Código Secreto</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css">
+<title>Código Secreto</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css"><script src="icons.js"></script>
 <style>.rows{display:flex;flex-direction:column;gap:5px;width:min(100%,340px)}
 .row{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:4px 10px}
 .row.act{border-color:var(--acc2)}.row>small{width:18px;color:var(--mut);text-align:right}
@@ -11,8 +11,8 @@
 .pal button{width:42px;height:42px;border-radius:50%;padding:0;font-weight:700;color:#0b0d14;border:2px solid transparent}
 .pal button:hover{border-color:#fff}
 button:disabled{opacity:.45;cursor:default}
-.sec{display:flex;gap:8px;align-items:center;justify-content:center;min-height:32px}</style></head><body>
-<header><a href="index.html">← Jogos</a><h1>🔐 Código Secreto</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
+.sec{display:flex;gap:8px;align-items:center;justify-content:center;min-height:32px}</style></head><body data-fx="off">
+<header><a class="back" href="index.html"><i data-ic="voltar"></i><span>Jogos</span></a><h1><i data-ic="codigo"></i> Código Secreto</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
 <div class="bar"><span class="stat">Tentativa <b id="tn">1</b>/10</span><button id="new" class="primary">Novo jogo</button></div>
 <div class="msg" id="msg"></div><div class="sec" id="sec"></div>
 <div class="rows" id="rows"></div>
@@ -35,7 +35,7 @@ function put(v){if(done)return;const i=g.indexOf(null);if(i<0)return;g[i]=v;draw
 function del(){if(done)return;let i=3;while(i>=0&&g[i]==null)i--;if(i>=0){g[i]=null;draw()}}
 function send(){if(done||g.includes(null))return;const f=fb(g,secret);hist.push({g,f});g=[null,null,null,null];
  if(f[0]===4||hist.length===MAX){done=true;const win=f[0]===4;
-  $('msg').textContent=win?'🎉 Você decifrou o código em '+hist.length+(hist.length>1?' tentativas!':' tentativa!'):'😵 Acabaram as tentativas. O código era:';
+  $('msg').textContent=win?'Você decifrou o código em '+hist.length+(hist.length>1?' tentativas!':' tentativa!'):'Acabaram as tentativas. O código era:';
   $('sec').innerHTML=(win?'Código: ':'')+secret.map(v=>peg(v)).join('')}
  draw()}
 $('pal').innerHTML=COL.map((c,i)=>'<button data-c="'+i+'" style="background:'+c+'" aria-label="Cor '+(i+1)+'">'+(i+1)+'</button>').join('');
@@ -45,4 +45,4 @@ $('del').onclick=function(){this.blur();del()};$('ok').onclick=function(){this.b
 addEventListener('keydown',e=>{if(e.key>='1'&&e.key<='6'&&e.key.length===1){e.preventDefault();put(+e.key-1)}
  else if(e.key==='Backspace'){e.preventDefault();del()}else if(e.key==='Enter'){e.preventDefault();send()}});
 $('new').onclick=function(){this.blur();start()};start();
-</script><script src="fx.js" defer></script></body></html>
+</script><script src="config.js"></script><script src="conta.js"></script><script src="fx.js" defer></script></body></html>

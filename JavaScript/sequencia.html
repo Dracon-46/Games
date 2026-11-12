@@ -1,0 +1,47 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sequência</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css">
+<style>.g{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:min(100%,380px);aspect-ratio:1;user-select:none;touch-action:manipulation}
+.p{position:relative;border:2px solid hsl(var(--h) 55% 30%);border-radius:18px;padding:0;background:hsl(var(--h) 52% 26%);transition:background .14s,box-shadow .14s,transform .14s,border-color .14s}
+.p:hover{border-color:hsl(var(--h) 70% 55%)}
+.p span{position:absolute;left:10px;top:6px;font-size:13px;color:hsl(var(--h) 60% 72%);opacity:.8}
+.p.lit{background:hsl(var(--h) 88% 64%);border-color:hsl(var(--h) 95% 82%);box-shadow:0 0 30px hsl(var(--h) 90% 58%);transform:scale(1.045)}
+.g.lock .p{cursor:default}.g.lock .p:hover{border-color:hsl(var(--h) 55% 30%)}
+.g.bad .p{background:#4a1f2b;border-color:var(--bad)}
+.msg.bad{color:var(--bad)}.msg.good{color:var(--acc)}</style></head><body data-fx="off">
+<header><a class="back" href="index.html"><i data-ic="voltar"></i><span>Jogos</span></a><h1><i data-ic="sequencia"></i> Sequência</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
+<div class="bar"><span class="stat">Nível <b id="lv">0</b></span><span class="stat">Pontos <b id="sc">0</b></span><span class="stat">Recorde <b id="hi">0</b></span>
+<button id="snd"></button><button id="new" class="primary">Novo jogo</button></div>
+<div class="msg" id="msg">Aperte "Novo jogo" para começar.</div>
+<div class="g lock" id="g"></div>
+<p class="hint">Observe as luzes e repita a sequência na mesma ordem. A cada nível ela cresce e fica mais rápida. Toque nos blocos ou use as teclas 1 a 9.</p>
+</main><script src="icons.js"></script><script>
+const $=i=>document.getElementById(i),G=$('g'),HUE=[350,28,52,135,172,200,228,272,312],FREQ=[262,294,330,392,440,523,587,659,784],pads=[];
+let seq=[],pos=0,ph='idle',run=0,lvl=0,score=0,hi=0,mute=false,ac=null;
+try{hi=+localStorage.getItem('sequencia-hi')||0;mute=localStorage.getItem('sequencia-mudo')==='1'}catch(e){}
+HUE.forEach((h,i)=>{const b=document.createElement('button');b.className='p';b.style.setProperty('--h',h);b.innerHTML='<span>'+(i+1)+'</span>';b.setAttribute('aria-label','Bloco '+(i+1));
+ b.addEventListener('pointerdown',e=>{e.preventDefault();press(i)});b.addEventListener('keydown',e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();press(i)}});G.appendChild(b);pads.push(b)});
+function audio(){if(mute)return null;try{if(!ac)ac=new(window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();return ac}catch(e){return null}}
+function tone(f,d,type){const c=audio();if(!c)return;try{const o=c.createOscillator(),g=c.createGain(),t=c.currentTime;o.type=type||'sine';o.frequency.value=f;
+ g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.22,t+.015);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+d+.02)}catch(e){}}
+function light(i,ms){const b=pads[i];b.classList.add('lit');tone(FREQ[i],ms/1000+.12);clearTimeout(b._t);b._t=setTimeout(()=>b.classList.remove('lit'),ms)}
+function say(s,c){$('msg').innerHTML=s;$('msg').className='msg'+(c?' '+c:'')}
+function hud(){$('lv').textContent=lvl;$('sc').textContent=score;$('hi').textContent=hi}
+function sndLabel(){$('snd').textContent=mute?'Som: desligado':'Som: ligado';$('snd').classList.toggle('on',!mute)}
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+function stepMs(){return Math.max(230,620-(lvl-1)*36)}
+async function next(){const id=run;seq.push(Math.random()*9|0);lvl=seq.length;ph='show';G.className='g lock';hud();say('Observe…');
+ await wait(650);const s=stepMs();
+ for(const i of seq){if(id!==run)return;light(i,s*.62);await wait(s)}
+ if(id!==run)return;ph='input';pos=0;G.className='g';say('Sua vez! Repita '+lvl+(lvl>1?' passos.':' passo.'))}
+function start(){run++;audio();seq=[];score=0;lvl=0;pads.forEach(b=>b.classList.remove('lit'));next()}
+function press(i){if(ph!=='input')return;audio();
+ if(i!==seq[pos]){over(i);return}
+ light(i,190);pos++;
+ if(pos===seq.length){ph='wait';G.className='g lock';score+=lvl*10;if(score>hi){hi=score;try{localStorage.setItem('sequencia-hi',hi)}catch(e){}}hud();say('Muito bem!','good');const id=run;setTimeout(()=>{if(id===run)next()},750)}}
+function over(i){window.Conta&&Conta.submit('sequencia',score);ph='over';run++;G.className='g lock bad';tone(110,.5,'sawtooth');const ok=seq[pos];pads[ok].classList.add('lit');const id=run;setTimeout(()=>{if(id===run){pads[ok].classList.remove('lit');G.className='g lock'}},1100);
+ say(icon('caveira')+' Fim de jogo no nível '+lvl+'. Pontos: '+score+(score&&score===hi?' — novo recorde!':'')+' O certo era o bloco '+(ok+1)+'.','bad')}
+addEventListener('keydown',e=>{if(e.repeat||e.ctrlKey||e.metaKey||e.altKey)return;if(e.key>='1'&&e.key<='9'&&e.key.length===1){e.preventDefault();press(+e.key-1)}});
+$('new').onclick=function(){this.blur();start()};
+$('snd').onclick=function(){this.blur();mute=!mute;try{localStorage.setItem('sequencia-mudo',mute?'1':'0')}catch(e){}sndLabel();if(!mute)tone(523,.15)};
+sndLabel();hud();
+</script><script src="config.js"></script><script src="conta.js"></script><script src="fx.js" defer></script></body></html>
