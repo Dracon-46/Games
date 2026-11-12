@@ -1,0 +1,82 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Palpite</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css"><script src="icons.js"></script>
+<style>
+main{max-width:760px;gap:12px}
+#boards{display:grid;gap:14px 18px;justify-content:center;width:100%}
+#boards.n1{grid-template-columns:minmax(0,300px)}#boards.n2{grid-template-columns:repeat(2,minmax(0,250px))}#boards.n4{grid-template-columns:repeat(4,minmax(0,165px))}
+.bd{display:grid;gap:4px;transition:opacity .3s}.bd.done{opacity:.55}
+.row{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.t{aspect-ratio:1;display:grid;place-items:center;border:1.500px solid var(--line);border-radius:4px;font:700 clamp(13px,4.200vw,26px)/1 system-ui,sans-serif;text-transform:uppercase;background:var(--bg)}
+.n4 .t{font-size:clamp(11px,2.600vw,20px)}
+.t.f{border-color:var(--mut)}.t.pop{animation:pop .12s}
+.t.flip{animation:flip .5s both;animation-delay:calc(var(--k)*110ms)}
+.t.g{background:#3f9d6a;border-color:#3f9d6a;color:#fff}.t.y{background:#c99a2e;border-color:#c99a2e;color:#fff}.t.x{background:#2a2a2e;border-color:#2a2a2e;color:#b9b6ad}
+.row.shake{animation:shake .35s}
+#kb{display:flex;flex-direction:column;gap:6px;width:min(100%,520px);user-select:none}
+#kb div{display:flex;gap:5px;justify-content:center}
+#kb button{position:relative;flex:1;max-width:46px;height:52px;padding:0;border-radius:5px;font-weight:700;font-size:15px;overflow:hidden;background:#3a3a40;border-color:#3a3a40;touch-action:manipulation}
+#kb button.w{flex:1.600;max-width:76px;font-size:12px}
+#kb button>span{position:relative;z-index:1}
+#kb .sg{position:absolute;inset:0;display:grid}#kb .sg i{display:block}
+.sg .g{background:#3f9d6a}.sg .y{background:#c99a2e}.sg .x{background:#1b1b1e}.sg .u{background:#3a3a40}
+#kb button.dead{color:#77746c}
+#st{display:none;width:min(100%,420px);border:1px solid var(--line);border-radius:8px;padding:16px;background:var(--card)}
+#st.on{display:block}#st .nums{display:grid;grid-template-columns:repeat(4,1fr);text-align:center;margin-bottom:12px}#st .nums b{display:block;font-size:26px}#st .nums small{color:var(--mut);font-size:12px}
+#st .dist div{display:flex;align-items:center;gap:8px;font-size:13px;margin:3px 0}#st .dist span{display:block;height:16px;background:var(--mut);min-width:4px;border-radius:2px}#st .dist .me span{background:var(--acc)}
+@keyframes pop{50%{transform:scale(1.1)}}@keyframes flip{0%{transform:rotateX(0)}50%{transform:rotateX(90deg)}100%{transform:rotateX(0)}}@keyframes shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+@media (max-width:640px){#boards.n4{grid-template-columns:repeat(2,minmax(0,150px));gap:10px 14px}#boards.n4 .t{aspect-ratio:1.350;font-size:clamp(11px,3.600vw,16px)}#boards.n2{gap:10px}#kb button{height:46px}}
+@media (prefers-reduced-motion:reduce){.t.flip,.t.pop,.row.shake{animation:none}}
+</style></head><body>
+<header><a class="back" href="index.html"><i data-ic="voltar"></i><span>Jogos</span></a><h1><i data-ic="palpite"></i> Palpite</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
+<div class="bar"><select id="n" aria-label="Quantas palavras"><option value="1">1 palavra · 6 tentativas</option><option value="2">2 palavras · 7 tentativas</option><option value="4">4 palavras · 9 tentativas</option></select>
+<select id="kind" aria-label="Tipo de partida"><option value="d">Palavra do dia</option><option value="r">Aleatória</option></select><button id="new" class="primary">Novo jogo</button><button id="sb">Estatísticas</button></div>
+<div class="msg" id="msg" role="status"></div>
+<div id="boards"></div><div id="st"></div><div id="kb"></div>
+<p class="hint">Descubra as palavras de 5 letras. Verde: letra no lugar certo. Amarelo: a letra existe, mas em outra posição. Cinza: não existe. Cada palpite vale para todos os quadros. Sem acentos; Ç conta como C.</p>
+</main><script src="palavras5.js"></script><script>
+const $=i=>document.getElementById(i),TRY={1:6,2:7,4:9},KEYS=['QWERTYUIOP','ASDFGHJKL','ZXCVBNM'];
+let n=1,kind='d',sol=[],guesses=[],cur='',over=false,busy=false,max=6;
+// avalia um palpite contra a solução, tratando letras repetidas
+function score(g,s){const r=Array(5).fill('x'),left={};for(let i=0;i<5;i++){if(g[i]===s[i])r[i]='g';else left[s[i]]=(left[s[i]]||0)+1}
+ for(let i=0;i<5;i++)if(r[i]!=='g'&&left[g[i]]>0){r[i]='y';left[g[i]]--}return r}
+function rng(seed){let a=seed>>>0;return()=>{a=(a+0x6d2b79f5)>>>0;let t=a;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296}}
+const today=()=>{const d=new Date();return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate()};
+function pick(){const r=kind==='d'?rng(today()*7+n):Math.random,out=[];while(out.length<n){const w=PALAVRAS5[r()*PALAVRAS5.length|0];if(!out.includes(w))out.push(w)}return out}
+const sk=()=>'palpite-'+n+'-'+kind;
+function load(k,d){try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+function start(force){n=+$('n').value;kind=$('kind').value;max=TRY[n];sol=pick();guesses=[];cur='';over=false;busy=false;$('st').classList.remove('on');say('');
+ if(kind==='d'&&!force){const s=load(sk(),null);if(s&&s.day===today()&&Array.isArray(s.g)){guesses=s.g.filter(g=>/^[A-Z]{5}$/.test(g)).slice(0,max)}}
+ build();paint(false);check(true)}
+function build(){const B=$('boards');B.className='n'+n;B.innerHTML='';for(let b=0;b<n;b++){const d=document.createElement('div');d.className='bd';for(let r=0;r<max;r++){const row=document.createElement('div');row.className='row';for(let c=0;c<5;c++){const t=document.createElement('div');t.className='t';row.append(t)}d.append(row)}B.append(d)}
+ const K=$('kb');K.innerHTML='';KEYS.forEach((ks,i)=>{const d=document.createElement('div');const add=(l,txt,cls)=>{const b=document.createElement('button');b.type='button';b.dataset.k=l;b.className=cls||'';b.innerHTML='<span class="sg"></span><span>'+txt+'</span>';b.onclick=()=>key(l);d.append(b)};
+  if(i===2)add('Enter','ENTER','w');for(const l of ks)add(l,l);if(i===2)add('Backspace','APAGAR','w');K.append(d)})}
+const solvedAt=b=>{const i=guesses.indexOf(sol[b]);return i<0?Infinity:i};
+function paint(anim){const B=$('boards').children,best={};
+ for(let b=0;b<n;b++){const at=solvedAt(b),rows=B[b].children;B[b].classList.toggle('done',at<Infinity);
+  for(let r=0;r<max;r++){const g=r<guesses.length&&r<=at?guesses[r]:r===guesses.length&&at===Infinity&&!over?cur:'',done=r<guesses.length&&r<=at,sc=done?score(g,sol[b]):null;
+   for(let c=0;c<5;c++){const t=rows[r].children[c],ch=g[c]||'';t.textContent=ch;const cls='t'+(done?' '+sc[c]:ch?' f':'')+(anim&&done&&r===guesses.length-1?' flip':'');if(t.className!==cls)t.className=cls;t.style.setProperty('--k',c);
+    if(done){const k=ch;best[k]=best[k]||Array(n).fill('u');const o={u:0,x:1,y:2,g:3};if(o[sc[c]]>o[best[k][b]])best[k][b]=sc[c]}}}}
+ document.querySelectorAll('#kb button').forEach(b=>{const k=b.dataset.k,sg=b.querySelector('.sg'),v=best[k];if(k.length>1)return;
+  // quadros já resolvidos deixam de contar para a cor da tecla
+  const act=v?v.map((x,i)=>solvedAt(i)<Infinity&&x!=='g'?'x':x):null;
+  sg.style.gridTemplateColumns=n===1?'1fr':'1fr 1fr';sg.innerHTML=act?act.map(x=>'<i class="'+x+'"></i>').join(''):'';b.classList.toggle('dead',!!act&&act.every(x=>x==='x'))})}
+function say(t,c){$('msg').textContent=t;$('msg').style.color=c||''}
+function key(k){if(over||busy)return;if(k==='Enter')return enter();if(k==='Backspace'){cur=cur.slice(0,-1);return paint(false)}
+ if(/^[A-Z]$/.test(k)&&cur.length<5){cur+=k;paint(false);const B=$('boards').children;for(let b=0;b<n;b++)if(solvedAt(b)===Infinity){const t=B[b].children[guesses.length].children[cur.length-1];t.classList.add('pop')}}}
+function shake(t){say(t,'var(--bad)');const B=$('boards').children;for(let b=0;b<n;b++)if(solvedAt(b)===Infinity){const r=B[b].children[guesses.length];r.classList.remove('shake');void r.offsetWidth;r.classList.add('shake')}}
+function enter(){if(cur.length<5)return shake('Faltam letras.');if(guesses.includes(cur))return shake('Você já tentou essa palavra.');
+ guesses.push(cur);cur='';say('');if(kind==='d')save(sk(),{day:today(),g:guesses});busy=true;paint(true);setTimeout(()=>{busy=false;check(false)},matchMedia('(prefers-reduced-motion:reduce)').matches?0:950)}
+function check(restored){const all=sol.every((s,b)=>solvedAt(b)<Infinity),out=guesses.length>=max;if(!all&&!out)return;over=true;
+ say(all?'Você acertou em '+guesses.length+(guesses.length===1?' tentativa!':' tentativas!'):(n===1?'A palavra era ':'As palavras eram ')+sol.join(', ')+'.',all?'var(--acc)':'var(--bad)');
+ if(!restored){const s=load('palpite-st-'+n,{p:0,w:0,s:0,b:0,d:[]});s.p++;if(all){s.w++;s.s++;s.b=Math.max(s.b,s.s);s.d[guesses.length]=(s.d[guesses.length]||0)+1}else s.s=0;save('palpite-st-'+n,s)}
+ paint(false);stats(all?guesses.length:0)}
+function stats(mine){const s=load('palpite-st-'+n,{p:0,w:0,s:0,b:0,d:[]}),mx=Math.max(1,...Array.from({length:max},(_,i)=>s.d[i+1]||0));
+ $('st').innerHTML='<div class="nums"><div><b>'+s.p+'</b><small>jogos</small></div><div><b>'+(s.p?Math.round(s.w/s.p*100):0)+'%</b><small>vitórias</small></div><div><b>'+s.s+'</b><small>sequência</small></div><div><b>'+s.b+'</b><small>melhor</small></div></div><div class="dist">'
+  +Array.from({length:max},(_,i)=>'<div class="'+(mine===i+1?'me':'')+'">'+(i+1)+'<span style="width:'+((s.d[i+1]||0)/mx*80)+'%"></span>'+(s.d[i+1]||0)+'</div>').join('')+'</div>';$('st').classList.add('on')}
+addEventListener('keydown',e=>{if(e.ctrlKey||e.metaKey||e.altKey||e.target.tagName==='SELECT')return;const k=e.key==='ç'||e.key==='Ç'?'C':e.key.length===1?e.key.normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase():e.key;
+ if(k==='Enter'&&e.target.tagName==='BUTTON')return;if(k==='Enter'||k==='Backspace'||/^[A-Z]$/.test(k)){e.preventDefault();key(k)}});
+$('new').onclick=()=>{$('new').blur();if($('kind').value==='d'){if(!over)return start();$('kind').value='r'}start(true)};
+$('n').onchange=$('kind').onchange=function(){this.blur();start()};$('sb').onclick=()=>{$('st').classList.contains('on')?$('st').classList.remove('on'):stats(0);$('sb').blur()};
+window.__palpite={get sol(){return sol},get guesses(){return guesses},get over(){return over},score};start();
+</script><script src="config.js"></script><script src="conta.js"></script><script src="fx.js" defer></script></body></html>

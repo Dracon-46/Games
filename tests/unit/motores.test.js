@@ -1,6 +1,6 @@
-// Testes dos motores de regras (rodar com: node --test tests/motores.test.js)
+// Testes dos motores de regras (rodar com: npm run test:unit)
 const test=require('node:test'),assert=require('node:assert');
-const Chess=require('../JavaScript/xadrez-engine.js'),Damas=require('../JavaScript/damas-engine.js');
+const Chess=require('../../JavaScript/xadrez-engine.js'),Damas=require('../../JavaScript/damas-engine.js');
 const perft=(s,d)=>d?Chess.legal(s).reduce((n,m)=>n+perft(Chess.make(s,m),d-1),0):1;
 const fen=(f,t,c,rs,v='c')=>({b:f.split('/').map(r=>r.replace(/\d/g,n=>' '.repeat(n))).join('').split(''),t,c,ep:-1,h:0,v,rs:rs||{K:63,Q:56,k:7,q:0},cw:0,cb:0});
 
