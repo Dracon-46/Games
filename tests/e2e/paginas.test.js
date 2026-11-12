@@ -42,9 +42,19 @@ for (const [nome, width, touch] of [['computador', 1100, false], ['celular', 375
   });
 }
 
+test('os testes são herméticos: nenhuma página chama um servidor externo', { timeout: 120000 }, async () => {
+  const page = await open();
+  const fora = [];
+  page.on('request', (r) => { if (!r.url().startsWith(srv.url) && !r.url().startsWith('data:') && !r.url().startsWith('blob:')) fora.push(r.url()); });
+  for (const p of paginas) { await page.goto(srv.url + p); await page.waitForTimeout(150); }
+  await page.done();
+  assert.deepStrictEqual(fora, []);
+});
+
 test('prefers-reduced-motion: a home aparece inteira, sem depender de animação', async () => {
   const { chromium } = require('playwright');
   const b = await chromium.launch(), ctx = await b.newContext({ reducedMotion: 'reduce' }), page = await ctx.newPage();
+  await ctx.addInitScript(() => { window.FK_CONFIG = { url: '', key: '' }; });
   await page.goto(srv.url);
   const ocultos = await page.evaluate(() => [...document.querySelectorAll('.rv')].filter((e) => getComputedStyle(e).opacity !== '1').length);
   await b.close();

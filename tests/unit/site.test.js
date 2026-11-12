@@ -15,7 +15,7 @@ const icones = new Set(win.icons);
 test('catálogo: a home lista todos os jogos e cada um tem a sua página', () => {
   assert.ok(jogos.length >= 32, 'catálogo lido da home');
   for (const j of jogos) assert.ok(paginas.includes(j.slug + '.html'), 'falta a página de ' + j.slug);
-  const extras = paginas.map((p) => p.replace('.html', '')).filter((p) => !['index', 'ranking'].includes(p) && !jogos.some((j) => j.slug === p));
+  const extras = paginas.map((p) => p.replace('.html', '')).filter((p) => !['index', 'ranking', 'privacidade', 'termos'].includes(p) && !jogos.some((j) => j.slug === p));
   assert.deepStrictEqual(extras, [], 'página de jogo fora do catálogo');
   assert.strictEqual(new Set(jogos.map((j) => j.slug)).size, jogos.length, 'jogo repetido');
 });
@@ -62,6 +62,28 @@ for (const p of paginas) {
   });
 }
 
+test('legal: Termos e Privacidade existem, estão ligados na home, no ranking e no cadastro, e citam a LGPD', () => {
+  const priv = ler('privacidade.html'), termos = ler('termos.html'), conta = ler('conta.js');
+  for (const f of ['index.html', 'ranking.html', 'conta.js']) for (const l of ['termos.html', 'privacidade.html']) assert.ok(ler(f).includes(`href="${l}"`), f + ' sem link para ' + l);
+  for (const t of ['LGPD', '13.709', 'controlador', 'encarregado', 'art. 18', 'ANPD', 'Baixar meus dados', 'Excluir minha conta', 'Supabase', 'Vercel', 'mailto:']) assert.ok(priv.includes(t), 'privacidade.html sem ' + t);
+  assert.ok(termos.includes('privacidade.html') && priv.includes('termos.html'));
+  // a versão aceita no cadastro é a data que aparece nas duas páginas
+  const v = conta.match(/TERMOS='(\d{4})-(\d{2})-(\d{2})'/);
+  const meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+  const data = `${+v[3]} de ${meses[+v[2] - 1]} de ${v[1]}`;
+  assert.ok(priv.includes(data) && termos.includes(data), 'data da versão: ' + data);
+});
+
+test('segurança: cabeçalhos da produção e CSP restrita ao próprio site e ao projeto Supabase', () => {
+  const h = Object.fromEntries(JSON.parse(ler('vercel.json')).headers[0].headers.map((x) => [x.key, x.value]));
+  for (const k of ['Content-Security-Policy', 'Strict-Transport-Security', 'X-Content-Type-Options', 'X-Frame-Options', 'Referrer-Policy', 'Permissions-Policy']) assert.ok(h[k], 'falta ' + k);
+  const csp = h['Content-Security-Policy'];
+  for (const d of ["default-src 'self'", "object-src 'none'", "frame-ancestors 'none'", "base-uri 'self'"]) assert.ok(csp.includes(d), d);
+  const url = (ler('config.js').match(/url: '([^']*)'/) || [])[1];
+  assert.deepStrictEqual([...csp.matchAll(/https?:\/\/[^\s;]+/g)].map((m) => m[0]), url ? [url] : [], 'a CSP só libera o projeto de config.js');
+  assert.ok(!/\beval\(|new Function\(|document\.write\(/.test(paginas.map(ler).join('')), 'sem eval nem document.write nas páginas');
+});
+
 test('scripts compartilhados: sem emoji e com sintaxe válida', () => {
   for (const f of fs.readdirSync(SITE).filter((x) => x.endsWith('.js'))) {
     const s = ler(f);
@@ -91,6 +113,7 @@ test('ranking: todo jogo que envia pontuação existe no banco e na página de r
   assert.deepStrictEqual([...noBanco].sort(), [...new Set(enviam)].sort(), 'banco e jogos listam os mesmos jogos');
 });
 
-test('config.js vai para o repositório sem credenciais de teste', () => {
+test('config.js: só URL de projeto Supabase e chave publicável (nunca a service_role)', () => {
   assert.match(ler('config.js'), /url: '(https:\/\/[a-z0-9]+\.supabase\.co)?', key: '(sb_publishable_[A-Za-z0-9_-]+)?'/);
+  assert.doesNotMatch(ler('config.js'), /service_role|sb_secret_|eyJ/);
 });

@@ -8,6 +8,9 @@ O Falkyria Games é um site estático: HTML, CSS e JavaScript escritos à mão, 
 JavaScript/         o site
   index.html        home: catálogo, abas, busca e destaques
   ranking.html      ranking global
+  privacidade.html  política de privacidade (LGPD)
+  termos.html       termos de uso
+  vercel.json       cabeçalhos de segurança da produção
   <jogo>.html       uma página por jogo, com o código do jogo embutido
   style.css         estilos compartilhados (tema, cabeçalho, botões, tabuleiros)
   icons.js          ícones SVG do site

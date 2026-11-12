@@ -40,3 +40,12 @@ header .hbtn:hover{border-color:var(--warn)}header .hbtn+.brand{margin-left:0}
 button,select,.stat{border-radius:6px}button.primary{border-color:var(--fg)}button.primary:hover{background:var(--acc);border-color:var(--acc)}canvas{border-radius:8px}h1{font-weight:600}
 h1{display:flex;align-items:center;gap:.35em;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}h1 i[data-ic]{margin-right:0}
 @media (max-width:480px){header{gap:10px}header a.back{padding:8px 10px}header a.back span{display:none}.fk-btn span{max-width:74px;overflow:hidden;text-overflow:ellipsis}}
+/* páginas de texto (privacidade, termos) */
+.doc{max-width:760px;align-items:stretch;gap:0;padding-top:34px;line-height:1.65}
+.doc .ttl{font:400 clamp(36px,7vw,60px)/1.05 "Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;letter-spacing:-.02em;margin:0 0 8px}
+.doc .when{font:500 12px ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);margin:0 0 26px}
+.doc h2{font:400 26px/1.2 "Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;margin:34px 0 8px;padding-top:18px;border-top:1px solid var(--line)}
+.doc p,.doc li{color:#cfcbc2}.doc ul{padding-left:20px;margin:8px 0}.doc li{margin:4px 0}.doc a{color:var(--fg)}.doc b{color:var(--fg)}
+.doc table{width:100%;border-collapse:collapse;margin:10px 0;font-size:15px}.doc th,.doc td{text-align:left;vertical-align:top;padding:9px 10px 9px 0;border-bottom:1px solid var(--line)}
+.doc th{font:500 11px ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+.doc .foot{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);color:var(--mut);font-size:14px}

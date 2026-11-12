@@ -2,6 +2,14 @@
 
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). As versões são as do `package.json`.
 
+## [2.2.0] - 2026-11-12
+
+### Adicionado
+- Camada online ativada em produção: contas, ranking global e xadrez online agora usam o projeto Supabase `falkyria-games`.
+- Teste que garante que nenhuma página chama servidor externo durante os testes.
+- **LGPD:** Política de Privacidade e Termos de Uso; aceite obrigatório e registrado no cadastro; "Baixar meus dados" e "Excluir minha conta" no menu da conta.
+- **Segurança:** cabeçalhos de produção (CSP, HSTS e outros) em `vercel.json`, `SECURITY.md` para relato de falhas e senha mínima de 8 caracteres.
+
 ## [2.1.0] - 2026-11-12
 
 ### Adicionado

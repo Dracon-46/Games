@@ -16,42 +16,47 @@ const msg = (p) => p.textContent('#msg');
 const erro = async (p) => { await p.waitForFunction(() => document.querySelector('.fk-err').textContent); return p.textContent('.fk-err'); };
 async function cadastra(p, nome, email) {
   await p.click('#fk-conta'); await p.click('[data-m=up]');
-  await p.fill('#fk-n', nome); await p.fill('#fk-e', email); await p.fill('#fk-p', 'segredo1'); await p.click('.fk-go');
+  await p.fill('#fk-n', nome); await p.fill('#fk-e', email); await p.fill('#fk-p', 'segredo1'); await p.check('#fk-t'); await p.click('.fk-go');
   await p.waitForSelector('.fk-ov', { state: 'detached' });
 }
 
 test.before(async () => {
   if (skip) return;
   pg.reset();
-  pg.admin(`insert into auth.users(email, pass, raw_user_meta_data) values('ana@x.com', 'segredo1', '{"username":"Ana"}')`);
+  pg.admin(`insert into auth.users(email, pass, raw_user_meta_data) values('ana@x.com', 'segredo1', '{"username":"Ana","terms":"2026-11-12"}')`);
   srv = await start({ supabase: true });
   A = await open({ init }); B = await open({ init });
 });
 test.after(async () => { if (A) await A.done(); if (B) await B.done(); await close(); if (srv) await srv.close(); });
 
-test('cadastro: valida o nome, recusa nome em uso (mesmo com outra caixa) e entra', T, async () => {
+test('cadastro: valida o nome, exige o aceite dos termos, recusa nome em uso (mesmo com outra caixa) e entra', T, async () => {
   await A.goto(srv.url + 'xadrez.html?online=1');
   await A.waitForSelector('#lg');
   await A.click('#fk-conta'); await A.click('[data-m=up]');
-  await A.fill('#fk-n', 'x'); await A.fill('#fk-e', 'teo@x.com'); await A.fill('#fk-p', 'segredo1'); await A.click('.fk-go');
+  await A.fill('#fk-n', 'Teo'); await A.fill('#fk-e', 'teo@x.com'); await A.fill('#fk-p', 'segredo1'); await A.click('.fk-go');
+  assert.match(await erro(A), /aceitar os Termos de Uso e a Política de Privacidade/);
+  assert.deepStrictEqual(await A.$$eval('.fk-ck a', (a) => a.map((x) => x.getAttribute('href'))), ['termos.html', 'privacidade.html']);
+  await A.check('#fk-t');
+  await A.fill('#fk-n', 'x'); await A.click('.fk-go');
   assert.match(await erro(A), /3 a 16/);
   await A.fill('#fk-n', 'ANA'); await A.click('.fk-go');
   assert.strictEqual(await erro(A), 'Esse nome de jogador já está em uso.');
   await A.fill('#fk-n', 'Teo'); await A.fill('#fk-p', '123'); await A.click('.fk-go');
-  assert.match(await erro(A), /pelo menos 6/);
+  assert.match(await erro(A), /pelo menos 8/);
   await A.fill('#fk-p', 'segredo1'); await A.click('.fk-go');
   await A.waitForSelector('.fk-ov', { state: 'detached' });
   assert.strictEqual(await A.textContent('#fk-conta'), 'Teo');
+  assert.strictEqual(pg.admin(`select terms_version from profiles where username = 'Teo'`), '2026-11-12', 'o aceite fica registrado');
 });
 
 test('login: senha errada, e-mail repetido, sair e entrar de novo; a sessão vale em todas as páginas', T, async () => {
   await B.goto(srv.url + 'index.html');
   await cadastra(B, 'Lia', 'lia@x.com');
   assert.strictEqual(await B.textContent('#fk-conta'), 'Lia');
-  await B.click('#fk-conta'); await B.click('.fk-go');           // sair
+  await B.click('#fk-conta'); await B.click('#fk-out');
   assert.strictEqual(await B.textContent('#fk-conta'), 'Entrar');
   await B.click('#fk-conta'); await B.click('[data-m=up]');
-  await B.fill('#fk-n', 'Lia2'); await B.fill('#fk-e', 'lia@x.com'); await B.fill('#fk-p', 'segredo1'); await B.click('.fk-go');
+  await B.fill('#fk-n', 'Lia2'); await B.fill('#fk-e', 'lia@x.com'); await B.fill('#fk-p', 'segredo1'); await B.check('#fk-t'); await B.click('.fk-go');
   assert.strictEqual(await erro(B), 'Este e-mail já tem uma conta.');
   await B.click('[data-m=in]'); await B.fill('#fk-e', 'lia@x.com'); await B.fill('#fk-p', 'errada'); await B.click('.fk-go');
   assert.strictEqual(await erro(B), 'E-mail ou senha incorretos.');
@@ -141,4 +146,28 @@ test('jogo real envia a pontuação ao morrer (Cobrinha) e avisa quem não está
   assert.strictEqual(await anon.evaluate(() => Conta.submit('cobrinha', 5)), null);
   assert.match(await anon.textContent('.fk-toast'), /Entre para aparecer no ranking/);
   await anon.done();
+});
+
+test('LGPD: baixar os próprios dados e excluir a conta pelo menu', T, async () => {
+  await A.goto(srv.url + 'index.html');
+  await A.click('#fk-conta');
+  const [arquivo] = await Promise.all([A.waitForEvent('download'), A.click('#fk-exp')]);
+  assert.strictEqual(arquivo.suggestedFilename(), 'falkyria-games-meus-dados.json');
+  const dados = JSON.parse(require('node:fs').readFileSync(await arquivo.path(), 'utf8'));
+  assert.strictEqual(dados.conta.email, 'teo@x.com'); assert.strictEqual(dados.perfil.nome_de_jogador, 'Teo');
+  assert.deepStrictEqual(dados.pontuacoes.map((p) => [p.jogo, p.pontos]), [['cobrinha', 77]]);
+  assert.ok(dados.partidas_de_xadrez.length >= 2);
+  await A.click('#fk-del');
+  await A.fill('#fk-c', 'outro'); await A.click('.fk-go');
+  assert.strictEqual(await erro(A), 'O nome não confere.');
+  assert.strictEqual(pg.admin(`select count(*) from profiles where username = 'Teo'`), '1');
+  await A.fill('#fk-c', 'teo'); await A.click('.fk-go');
+  await A.waitForSelector('.fk-ov', { state: 'detached' });
+  assert.strictEqual(await A.textContent('#fk-conta'), 'Entrar');
+  assert.strictEqual(pg.admin(`select count(*) from auth.users where email = 'teo@x.com'`), '0');
+  assert.strictEqual(pg.admin(`select count(*) from scores s join profiles p on p.id = s.user_id where p.username = 'Teo'`), '0');
+  await A.goto(srv.url + 'ranking.html#cobrinha');
+  await A.waitForSelector('#tb tr');
+  assert.ok(!(await A.textContent('#tb')).includes('Teo'), 'saiu do ranking');
+  assert.deepStrictEqual(A.errors, []);
 });

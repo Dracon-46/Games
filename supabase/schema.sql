@@ -10,6 +10,8 @@ create table public.profiles (
   username extensions.citext unique not null check (username ~ '^[A-Za-z0-9_]{3,16}$'),
   rating int not null default 1200,
   chess_games int not null default 0,
+  terms_version text not null,                          -- versão dos Termos e da Política aceita no cadastro
+  terms_accepted_at timestamptz not null default now(),
   created_at timestamptz not null default now()
 );
 alter table public.profiles enable row level security;
@@ -18,12 +20,17 @@ create policy "perfis são públicos" on public.profiles for select using (true)
 -- O nome de jogador vem nos metadados do cadastro; o perfil nasce junto com o usuário.
 create function public.handle_new_user() returns trigger
 language plpgsql security definer set search_path = '' as $$
-declare u text := coalesce(new.raw_user_meta_data ->> 'username', '');
+declare
+  u text := coalesce(new.raw_user_meta_data ->> 'username', '');
+  t text := coalesce(new.raw_user_meta_data ->> 'terms', '');
 begin
   if u !~ '^[A-Za-z0-9_]{3,16}$' then
     raise exception 'nome de jogador inválido';
   end if;
-  insert into public.profiles (id, username) values (new.id, u);
+  if t !~ '^\d{4}-\d{2}-\d{2}$' then
+    raise exception 'é preciso aceitar os termos de uso e a política de privacidade';
+  end if;
+  insert into public.profiles (id, username, terms_version) values (new.id, u, t);
   return new;
 end $$;
 create trigger on_auth_user_created after insert on auth.users
@@ -255,6 +262,37 @@ language sql stable security definer set search_path = '' as $$
       order by g.updated_at desc limit 5) y), '[]'::json));
 $$;
 
+-- ---------------------------------------------------------------- LGPD: acesso e eliminação dos dados
+-- Tudo o que o site guarda sobre quem chama (art. 18, II e V da LGPD).
+create function public.my_data() returns json
+language sql stable security definer set search_path = '' as $$
+  select case when auth.uid() is null then null else json_build_object(
+    'exportado_em', now(),
+    'conta', (select json_build_object('email', u.email, 'criada_em', u.created_at) from auth.users u where u.id = auth.uid()),
+    'perfil', (select json_build_object('nome_de_jogador', p.username::text, 'rating_xadrez', p.rating, 'partidas_xadrez', p.chess_games,
+        'termos_versao', p.terms_version, 'termos_aceitos_em', p.terms_accepted_at, 'criado_em', p.created_at)
+      from public.profiles p where p.id = auth.uid()),
+    'pontuacoes', coalesce((select json_agg(json_build_object('jogo', s.game, 'pontos', s.score, 'atualizado_em', s.updated_at) order by s.game)
+      from public.scores s where s.user_id = auth.uid()), '[]'::json),
+    'partidas_de_xadrez', coalesce((select json_agg(json_build_object('codigo', g.code, 'situacao', g.status, 'resultado', g.result,
+        'minha_cor', case when g.white = auth.uid() then 'brancas' else 'pretas' end, 'lances', g.moves, 'criada_em', g.created_at) order by g.created_at)
+      from public.chess_games g where auth.uid() in (g.white, g.black)), '[]'::json)) end;
+$$;
+
+-- Elimina a conta e tudo ligado a ela. Partidas em andamento contam como desistência;
+-- nas partidas encerradas o adversário mantém o registro, sem o nome de quem saiu.
+create function public.delete_account() returns void
+language plpgsql security definer set search_path = '' as $$
+declare uid uuid := auth.uid(); g record;
+begin
+  if uid is null then raise exception 'entre na sua conta'; end if;
+  delete from public.chess_games where status = 'waiting' and uid in (white, black);
+  for g in select id, white from public.chess_games where status = 'playing' and uid in (white, black) loop
+    perform public._chess_finish(g.id, case when g.white = uid then 'b' else 'w' end, 'desistência');
+  end loop;
+  delete from auth.users where id = uid;  -- perfil e pontuações saem em cascata
+end $$;
+
 -- ---------------------------------------------------------------- permissões
 -- O Supabase concede EXECUTE em toda função nova a anon e authenticated; aqui só fica o que é público de fato.
 revoke execute on all functions in schema public from public, anon, authenticated;
@@ -262,4 +300,5 @@ grant execute on function public.username_available(text), public.top_scores(tex
   public.overall_ranking(int), public.chess_ranking(int) to anon, authenticated;
 grant execute on function public.submit_score(text, int), public.chess_create(jsonb, text),
   public.chess_join(text), public.chess_move(uuid, int, jsonb, jsonb, text, text),
-  public.chess_resign(uuid), public.chess_get(uuid), public.chess_lobby() to authenticated;
+  public.chess_resign(uuid), public.chess_get(uuid), public.chess_lobby(),
+  public.my_data(), public.delete_account() to authenticated;

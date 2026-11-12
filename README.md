@@ -83,7 +83,8 @@ Parte da [Falkyria](https://dracon-46.github.io/Portifolio/). Tudo aqui é HTML,
 
 A parte online usa o [Supabase](https://supabase.com) (Postgres + Auth) e fala com ele direto por `fetch`, sem biblioteca:
 
-- **Cadastro e login** com e-mail, senha e nome de jogador (`JavaScript/conta.js`).
+- **Cadastro e login** com e-mail, senha e nome de jogador (`JavaScript/conta.js`), com aceite dos [Termos de Uso](JavaScript/termos.html) e da [Política de Privacidade](JavaScript/privacidade.html).
+- **LGPD:** cada jogador baixa os próprios dados e exclui a conta pelo menu, sem precisar pedir.
 - **Ranking global** dos jogos de pontuação e ranking geral (`JavaScript/ranking.html`).
 - **Xadrez online** com salas por código ou link e rating Elo.
 
@@ -126,7 +127,7 @@ Detalhes em [docs/testes.md](docs/testes.md).
 
 ## Documentação
 
-Tudo em [`docs/`](docs/README.md): [arquitetura](docs/arquitetura.md), [catálogo de jogos](docs/jogos.md), [xadrez](docs/xadrez.md), [camada online](docs/online.md), [testes](docs/testes.md), [como adicionar um jogo](docs/novo-jogo.md) e [publicação](docs/publicacao.md). Mudanças em [CHANGELOG.md](CHANGELOG.md); como contribuir em [CONTRIBUTING.md](CONTRIBUTING.md).
+Tudo em [`docs/`](docs/README.md): [arquitetura](docs/arquitetura.md), [catálogo de jogos](docs/jogos.md), [xadrez](docs/xadrez.md), [camada online](docs/online.md), [privacidade e segurança](docs/privacidade-e-seguranca.md), [testes](docs/testes.md), [como adicionar um jogo](docs/novo-jogo.md) e [publicação](docs/publicacao.md). Mudanças em [CHANGELOG.md](CHANGELOG.md); como contribuir em [CONTRIBUTING.md](CONTRIBUTING.md); como relatar falhas em [SECURITY.md](SECURITY.md).
 
 ## Estrutura
 
