@@ -32,7 +32,8 @@ create trigger on_auth_user_created after insert on auth.users
 create function public.username_available(p_username text) returns boolean
 language sql stable security definer set search_path = '' as $$
   select p_username ~ '^[A-Za-z0-9_]{3,16}$'
-     and not exists (select 1 from public.profiles where username = p_username::extensions.citext);
+     -- compara em minúsculas: com search_path vazio o operador = do citext não é encontrado
+     and not exists (select 1 from public.profiles where lower(username::text) = lower(p_username));
 $$;
 
 -- ---------------------------------------------------------------- ranking
@@ -255,7 +256,8 @@ language sql stable security definer set search_path = '' as $$
 $$;
 
 -- ---------------------------------------------------------------- permissões
-revoke execute on all functions in schema public from public, anon;
+-- O Supabase concede EXECUTE em toda função nova a anon e authenticated; aqui só fica o que é público de fato.
+revoke execute on all functions in schema public from public, anon, authenticated;
 grant execute on function public.username_available(text), public.top_scores(text, int),
   public.overall_ranking(int), public.chess_ranking(int) to anon, authenticated;
 grant execute on function public.submit_score(text, int), public.chess_create(jsonb, text),

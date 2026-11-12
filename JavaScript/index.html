@@ -1,6 +1,6 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Falkyria Games</title>
-<meta name="description" content="Falkyria Games: um fliperama inteiro no navegador. 30 jogos, de xadrez com IA a experimentos em WebGL, sem instalar nada.">
+<meta name="description" content="Falkyria Games: um fliperama inteiro no navegador. 32 jogos, de xadrez com IA a experimentos em WebGL, sem instalar nada.">
 <link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css">
 <style>
 :root{--bg:#0c0c0d;--ink:#f2efe8;--mut:#8b887f;--line:#28282b;--amber:#f5b733;--cell:#121214;
@@ -19,7 +19,7 @@ a{color:inherit}
 .top nav a:hover{color:var(--ink);border-color:var(--amber)}
 /* abertura */
 .hero{overflow:clip;display:grid;grid-template-columns:1.25fr .75fr;gap:40px;align-items:center;padding:74px 0 56px}
-.hero h1{font:400 clamp(46px,8.200vw,104px)/.98 var(--serif);letter-spacing:-.025em;margin:22px 0 24px}
+.hero h1{font:400 clamp(46px,8.200vw,104px)/.98 var(--serif);letter-spacing:-.025em;margin:22px 0 24px;display:block;white-space:normal;overflow:visible}
 .hero h1 .ln{display:block;overflow:hidden;padding-bottom:.08em}
 .hero h1 .ln>span{display:inline-block;transform:translateY(105%)}
 .on .ln>span,.hero h1.on .ln>span{transform:none;transition:transform .9s cubic-bezier(.16,1,.3,1);transition-delay:calc(var(--l)*110ms)}
@@ -109,7 +109,7 @@ h1.rv{opacity:1;transform:none}
  .grid{grid-template-columns:repeat(2,1fr)}.card{min-height:158px;padding:14px}.card b{font-size:20px}.find{flex:1 1 100%;margin-left:0;border-top:1px solid var(--line)}.top nav a span{display:none}.top nav{gap:16px}.top nav .hm{display:none}.sec{margin-top:52px}footer .sp{margin-left:0}}
 @media (max-width:400px){.how{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.rv,.hero h1 .ln>span{opacity:1;transform:none}.sec.rv{background-size:100% 1px}}
-</style></head><body data-fx="off">
+</style></head><body data-fx="dim">
 <div class="top"><div class="wrap"><a class="logo" href="index.html"><img src="falkyria.svg" alt="">Falkyria Games</a>
 <nav><a href="ranking.html"><i data-ic="trofeu"></i><span>Ranking</span></a><a class="hm" href="https://dracon-46.github.io/Portifolio/"><span>Falkyria</span></a><a href="https://github.com/Dracon-46/Games"><i data-ic="github"></i><span>Código</span></a></nav></div></div>
 
@@ -120,7 +120,7 @@ h1.rv{opacity:1;transform:none}
   <h1 class="rv"><span class="ln" style="--l:0"><span>Um fliperama</span></span><span class="ln" style="--l:1"><span>inteiro <em>no</em></span></span><span class="ln" style="--l:2"><span><em>navegador</em><i class="dot"></i></span></span></h1>
   <p class="rv" style="--d:3">Xadrez com IA, clássicos de tabuleiro, arcade e experimentos gráficos na GPU. Sem instalar nada, sem cadastro: é abrir e jogar.</p>
   <div class="cta rv" style="--d:4"><a class="btn go" id="rand" href="#"><i data-ic="jogar"></i>Jogar um aleatório</a><a class="btn tx" href="#jogos">Ver todos os jogos <i data-ic="seta"></i></a></div>
-  <div class="stats rv" style="--d:5"><div><b data-n="0" id="nGames">0</b><small class="lbl">jogos</small></div><div><b data-n="12">0</b><small class="lbl">com IA</small></div><div><b data-n="3">0</b><small class="lbl">em WebGL</small></div><div><b data-n="0">0</b><small class="lbl">dependências</small></div></div>
+  <div class="stats rv" style="--d:5"><div><b data-n="0" id="nGames">0</b><small class="lbl">jogos</small></div><div><b data-n="11">0</b><small class="lbl">com IA</small></div><div><b data-n="3">0</b><small class="lbl">em WebGL</small></div><div><b data-n="0">0</b><small class="lbl">dependências</small></div></div>
  </div>
  <div class="orb rv" style="--d:2" aria-hidden="true"><div class="ring r2" id="r2"></div><div class="ring r1" id="r1"></div><div class="core"><img src="falkyria.svg" alt=""></div></div>
 </section>
@@ -163,9 +163,11 @@ const G=[
 ['blocos','Blocos','Encaixe peças e limpe linhas','arcade',['Clássico']],
 ['tijolos','Quebra-Tijolos','Rebata a bola e limpe as fases','arcade',['Fases']],
 ['pingue','Pingue-Pongue','Tênis de mesa contra o computador','arcade',['IA','2 jogadores']],
+['duelo','Duelo','Luta em três rounds com golpes e especial','arcade',['IA','2 jogadores']],
 ['orbita','Órbita','Troque de anel e colete cristais','arcade',['Original']],
 ['desvio','Desvio','Sobreviva à chuva de meteoros','arcade',['Original']],
 ['palavras','Chuva de Palavras','Digite antes que caiam','arcade',['Digitação']],
+['palpite','Palpite','Descubra 1, 2 ou 4 palavras de 5 letras','puzzle',['Palavras','Diário']],
 ['sudoku','Sudoku','Três níveis, solução única','puzzle',['Lógica']],
 ['campo-minado','Campo Minado','Cuidado onde clica','puzzle',['Lógica'],'minas'],
 ['quinze','Quinze','Deslize as peças até ordenar','puzzle',['Lógica']],

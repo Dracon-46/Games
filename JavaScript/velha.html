@@ -1,7 +1,7 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Jogo da Velha</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css"><script src="icons.js"></script>
 <style>.board{grid-template-columns:repeat(3,1fr);width:min(100%,330px);gap:6px;border:0;background:none}.board>div{background:var(--card);border:1px solid var(--line);border-radius:12px;font-size:64px;font-weight:700}
-.X{color:var(--acc2)}.O{color:var(--bad)}.win{background:#26324a!important;border-color:var(--acc)!important}</style></head><body data-fx="off">
+.X{color:var(--acc2)}.O{color:var(--bad)}.win{background:#26324a!important;border-color:var(--acc)!important}</style></head><body>
 <header><a class="back" href="index.html"><i data-ic="voltar"></i><span>Jogos</span></a><h1><i data-ic="velha"></i> Jogo da Velha</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
 <div class="bar"><select id="mode"><option value="hard">Máquina: impossível</option><option value="easy">Máquina: fácil</option><option value="2p">2 jogadores</option></select><button id="new" class="primary">Novo jogo</button></div>
 <div class="msg" id="msg"></div><div class="board" id="bd"></div>

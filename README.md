@@ -4,7 +4,7 @@
 
 # Falkyria Games
 
-**Um fliperama inteiro no navegador: 30 jogos, zero dependências.**
+**Um fliperama inteiro no navegador: 32 jogos, zero dependências.**
 
 [![Jogar agora](https://img.shields.io/badge/Jogar%20agora-jogos--navegador.vercel.app-ff7a8f?style=for-the-badge&logo=vercel&logoColor=white)](https://jogos-navegador.vercel.app)
 
@@ -49,6 +49,7 @@ Parte da [Falkyria](https://dracon-46.github.io/Portifolio/). Tudo aqui é HTML,
 | **Blocos** | Peças de 2 a 5 blocos caem; complete linhas. |
 | **Quebra-Tijolos** | Fases geradas por código, tijolos resistentes e bônus que caem. |
 | **Pingue-Pongue** | Tênis de mesa contra o computador ou a dois no mesmo teclado. |
+| **Duelo** | Luta em melhor de três rounds, com três lutadores, golpes, defesa e especial. |
 | **Órbita** | Salte entre anéis, colete gemas e fuja dos perigos. |
 | **Desvio** | Pilote a nave e sobreviva à chuva de meteoros. |
 | **Chuva de Palavras** | Digite as palavras antes que caiam. |
@@ -57,6 +58,7 @@ Parte da [Falkyria](https://dracon-46.github.io/Portifolio/). Tudo aqui é HTML,
 
 | Jogo | O que é |
 |---|---|
+| **Palpite** | Descubra 1, 2 ou 4 palavras de cinco letras ao mesmo tempo, com palavra do dia. |
 | **Sudoku** | Três níveis, sempre com solução única. |
 | **Campo Minado** | Três tamanhos; o primeiro clique é sempre seguro. |
 | **Quinze** | Deslize as peças até ordenar, em 3×3, 4×4 ou 5×5. |
@@ -73,7 +75,7 @@ Parte da [Falkyria](https://dracon-46.github.io/Portifolio/). Tudo aqui é HTML,
 
 - **Motor de xadrez próprio** (`JavaScript/xadrez-engine.js`): geração de lances validada por *perft* contra os números de referência (inclusive em Chess960), busca alfa-beta com aprofundamento iterativo, busca de quiescência e limite de tempo. A IA roda num **Web Worker**, então o relógio nunca trava.
 - **Motor de damas próprio** (`JavaScript/damas-engine.js`): sequências de captura completas, lei da maioria e dama voadora.
-- **Gráficos na GPU**: os jogos da vitrine usam WebGL direto, com shaders GLSL escritos à mão.
+- **Gráficos na GPU**: o fundo animado de todas as páginas (`fx.js`) e os jogos da vitrine usam WebGL direto, com shaders GLSL escritos à mão. Sem WebGL, o site continua funcionando com fundo liso.
 - **Ícones próprios**: todos os ícones são SVG desenhados em `icons.js`; não há emoji nem fonte de ícones.
 - **Acessível em qualquer tela**: teclado, mouse e toque; respeita `prefers-reduced-motion`.
 
@@ -99,26 +101,41 @@ git clone https://github.com/Dracon-46/Games.git
 ```
 
 ```bash
-cd Games/JavaScript && python3 -m http.server 8000
+cd Games && npm start
 ```
 
-Depois abra `http://localhost:8000`. Um servidor local é necessário só por causa do Web Worker do xadrez; os outros jogos abrem direto pelo arquivo.
+Depois abra `http://127.0.0.1:8000`. Não há build: o servidor só entrega os arquivos de `JavaScript/`.
 
 ## Testes
 
 ```bash
-node --test tests/motores.test.js
+npm install && npx playwright install chromium
 ```
 
-Os testes cobrem as regras dos motores de xadrez e damas e rodam a cada push no GitHub Actions.
+```bash
+npm test
+```
+
+A suíte tem três camadas e roda a cada push no GitHub Actions:
+
+- **Unidade:** regras dos motores de xadrez e damas, integridade do site e documentação em dia.
+- **Banco:** cada regra de `supabase/schema.sql` num Postgres real, incluindo tentativas de burlar permissões.
+- **Navegador:** todas as páginas em tela de computador e de celular, a jogabilidade de cada jogo e a camada online entre dois navegadores.
+
+Detalhes em [docs/testes.md](docs/testes.md).
+
+## Documentação
+
+Tudo em [`docs/`](docs/README.md): [arquitetura](docs/arquitetura.md), [catálogo de jogos](docs/jogos.md), [xadrez](docs/xadrez.md), [camada online](docs/online.md), [testes](docs/testes.md), [como adicionar um jogo](docs/novo-jogo.md) e [publicação](docs/publicacao.md). Mudanças em [CHANGELOG.md](CHANGELOG.md); como contribuir em [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Estrutura
 
 ```text
 JavaScript/        o site: uma página por jogo, estilos, ícones e motores
 supabase/          esquema do banco para contas, ranking e xadrez online
-tests/             testes dos motores de regras
-.github/workflows/ integração contínua
+tests/             testes de unidade, de banco e de navegador
+docs/              documentação
+.github/           integração contínua e modelo de pull request
 ```
 
 ## Licença

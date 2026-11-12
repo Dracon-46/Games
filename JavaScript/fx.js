@@ -49,8 +49,8 @@
       ' vec2 q=vec2(fbm(q0+vec2(0.,t)),fbm(q0+vec2(5.2,1.3)-t));',
       ' vec2 r=vec2(fbm(q0+3.2*q+vec2(1.7,9.2)+t*1.6),fbm(q0+3.2*q+vec2(8.3,2.8)-t*1.3));',
       ' float f=fbm(q0+3.4*r);',
-      ' vec3 base=vec3(.0667,.0745,.1059);',
-      ' vec3 cA=vec3(.431,.906,.718),cB=vec3(.478,.635,1.),cC=vec3(.78,.573,.918);',
+      ' vec3 base=vec3(.047,.047,.051);',
+      ' vec3 cA=vec3(.96,.72,.2),cB=vec3(.45,.56,.9),cC=vec3(.5,.42,.7);',
       ' float band=smoothstep(.34,.86,f);',
       ' vec3 neb=mix(cB,cC,clamp(r.x*1.5-.2,0.,1.));neb=mix(neb,cA,clamp(q.y*q.y*2.2-.25,0.,1.));',
       // faixas de aurora verticais ondulando
@@ -115,7 +115,7 @@
         // só torna o body transparente quando o canvas está realmente desenhando
         if (gl.getError() === gl.NO_ERROR && !gl.isContextLost()) {
           shown = true;
-          document.documentElement.style.backgroundColor = '#11131b';
+          document.documentElement.style.backgroundColor = '#0c0c0d';
           body.style.background = 'transparent';
           window.__fxActive = true;
         }
