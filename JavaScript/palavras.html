@@ -1,8 +1,8 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Chuva de Palavras</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css">
+<title>Chuva de Palavras</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css"><script src="icons.js"></script>
 <style>#in{font:inherit;font-size:18px;width:min(100%,400px);padding:10px 14px;border-radius:10px;border:2px solid var(--line);background:var(--card);color:var(--fg);outline:none;text-align:center;letter-spacing:1px}
-#in:focus{border-color:var(--acc2)}#in.bad{border-color:var(--bad)}</style></head><body>
-<header><a href="index.html">← Jogos</a><h1>🌧️ Chuva de Palavras</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
+#in:focus{border-color:var(--acc2)}#in.bad{border-color:var(--bad)}</style></head><body data-fx="off">
+<header><a class="back" href="index.html"><i data-ic="voltar"></i><span>Jogos</span></a><h1><i data-ic="palavras"></i> Chuva de Palavras</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
 <div class="bar"><span class="stat">Pontos <b id="sc">0</b></span><span class="stat">Vidas <b id="lv">3</b></span><span class="stat">Recorde <b id="hi">0</b></span><button id="new" class="primary">Novo jogo</button></div>
 <input id="in" type="text" placeholder="digite aqui" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="done" aria-label="Digite a palavra">
 <canvas id="c" width="400" height="380"></canvas>
@@ -19,8 +19,8 @@ function hud(){$('sc').textContent=score;$('lv').textContent=lives}
 function start(){ws=[];fx=[];score=0;lives=3;t=0;nextW=.3;st='play';inp.value='';inp.className='';$('msg').textContent='';hud()}
 function spawn(){let w;do{w=WORDS[Math.random()*WORDS.length|0]}while(ws.some(o=>o.w===w));x.font=FONT;const tw=x.measureText(w).width;
  ws.push({w,tw,x:8+Math.random()*(W-16-tw),y:-4,v:(24+Math.min(t,150)*.4)*(.8+Math.random()*.4)})}
-function over(){st='over';const rec=score>hi;if(rec){hi=score;try{localStorage.setItem('palavras-hi',hi)}catch(e){}$('hi').textContent=hi}
- inp.value='';inp.className='';$('msg').textContent='💧 Fim de jogo! Pontos: '+score+(rec?' — novo recorde!':'')}
+function over(){window.Conta&&Conta.submit('palavras',score);st='over';const rec=score>hi;if(rec){hi=score;try{localStorage.setItem('palavras-hi',hi)}catch(e){}$('hi').textContent=hi}
+ inp.value='';inp.className='';$('msg').textContent='Fim de jogo! Pontos: '+score+(rec?' — novo recorde!':'')}
 function step(dt){t+=dt;nextW-=dt;if(nextW<=0||!ws.length){spawn();nextW=Math.max(.9,2.6-t*.02)}
  for(let i=ws.length-1;i>=0;i--){const o=ws[i];o.y+=o.v*dt;if(o.y>H-4){ws.splice(i,1);lives--;fx.push({x:o.x+o.tw/2,y:H-10,c:'#ff6b81',a:1});hud();if(lives<=0)return over()}}}
 function typed(){const raw=inp.value;if(/\s/.test(raw)){inp.value='';inp.className='';return}
@@ -43,4 +43,4 @@ addEventListener('keydown',e=>{if(document.activeElement!==inp&&!e.ctrlKey&&!e.m
 cv.addEventListener('pointerdown',e=>{e.preventDefault();if(st!=='play')start();foc()});
 $('new').onclick=()=>{start();foc()};
 requestAnimationFrame(loop);
-</script><script src="fx.js" defer></script></body></html>
+</script><script src="config.js"></script><script src="conta.js"></script><script src="fx.js" defer></script></body></html>

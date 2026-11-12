@@ -1,5 +1,5 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Enxame</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css">
+<title>Enxame</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css"><script src="icons.js"></script>
 <style>
 html,body{height:100%}
 body{display:flex;flex-direction:column;height:100vh;height:100dvh;min-height:0;overflow:hidden}
@@ -12,7 +12,7 @@ main{max-width:none;width:100%;flex:1;min-height:0;padding:10px 10px 8px;gap:8px
 .over .msg{font-size:24px;min-height:0;text-shadow:0 2px 12px #000}.over .hint{max-width:420px;color:#c3c9de;text-shadow:0 1px 8px #000}
 @media (max-width:480px){.stat{font-size:14px;padding:3px 9px}.bar button{font-size:14px}header{padding:9px 14px}.hint.foot{display:none}}
 </style></head><body data-fx="off">
-<header><a href="index.html">← Jogos</a><h1>✨ Enxame</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
+<header><a class="back" href="index.html"><i data-ic="voltar"></i><span>Jogos</span></a><h1><i data-ic="enxame"></i> Enxame</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
 <div class="bar"><span class="stat">Pontos <b id="sc">0</b></span><span class="stat">Enxame <b id="sw">0</b></span><span class="stat">Tempo <b id="tm">0s</b></span><span class="stat">Recorde <b id="hi">0</b></span><button id="novo">Novo jogo</button></div>
 <div class="stage" id="stage"><canvas id="c"></canvas>
 <div class="over" id="over"><div class="msg" id="msg">Guie o enxame</div>
@@ -44,12 +44,12 @@ var VS_PART=[
 var FS_PART='varying vec3 vC;void main(){vec2 q=gl_PointCoord-.5;float a=smoothstep(.5,.05,length(q));gl_FragColor=vec4(vC*a,1.);}';
 var FS_COMP=[
 'uniform sampler2D uTex;uniform vec2 uRes;uniform float uT;uniform float uA;',
-'uniform vec3 uVoid[6];uniform vec4 uOrb[4];uniform vec3 uTgt;uniform float uHurt;',
+'uniform vec3 uVoid[10];uniform vec4 uOrb[4];uniform vec3 uTgt;uniform float uHurt;',
 'float hash(vec2 p){p=fract(p*vec2(.3183,.3671));p+=dot(p,p.yx+19.19);return fract((p.x+p.y)*p.x*7.31);}',
 'void main(){',
 ' vec2 uv=gl_FragCoord.xy/uRes;vec2 p=(uv*2.-1.)*vec2(uA,1.);',
 ' vec2 off=vec2(0.);float dark=1.;vec3 add=vec3(0.);',
-' for(int i=0;i<6;i++){vec3 v=uVoid[i];if(v.z<=0.)continue;',
+' for(int i=0;i<10;i++){vec3 v=uVoid[i];if(v.z<=0.)continue;',
 '  vec2 d=p-v.xy;float l=length(d)+1e-4;float q=l/v.z;',
 '  float pull=exp(-q*q*.45);',
 // lente gravitacional: a amostra do rastro é torcida em volta do vazio
@@ -121,7 +121,7 @@ var state='demo',score=0,time=0,orbsGot=0,hurt=0,eatenAcc=0;
 var hi=GFX.hi('enxame-hi');
 var tx=0,ty=0,hasPtr=false,keys={};
 var voids=[],orbs=[];
-var uVoid=new Float32Array(18),uOrb=new Float32Array(16);
+var uVoid=new Float32Array(30),uOrb=new Float32Array(16);
 var q=GFX.quality(1,0.45);
 
 function spawn(count,x,y,spread,vel){
@@ -141,21 +141,21 @@ function addVoid(){
   var sc=A<.8?.8:1,x,y,t=0;
   do{var e=Math.random()*4|0;x=e===0?-A:e===1?A:rnd(-A,A);y=e===2?-1:e===3?1:rnd(-1,1)}while(Math.hypot(x-tx,y-ty)<.7&&++t<20);
   var a=Math.atan2(-y,-x)+rnd(-.6,.6),s=rnd(.1,.2);
-  voids.push({x:x,y:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,R:rnd(.13,.2)*sc,r:0,age:0});
+  voids.push({x:x,y:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,R:rnd(.2,.3)*sc*(1+Math.min(.5,time*.004)),r:0,age:0});
 }
 function hud(){$('sc').textContent=score;$('sw').textContent=n;$('tm').textContent=Math.floor(time)+'s';$('hi').textContent=hi.get()}
 function start(){
   state='play';score=0;time=0;orbsGot=0;hurt=0;n=0;voids=[];orbs=[];
   if(!hasPtr){tx=0;ty=0}
   spawn(START,tx,ty,.25,.6);
-  addVoid();addVoid();
+  addVoid();addVoid();addVoid();
   for(var k=0;k<3;k++)orbs.push(placeOrb());
   $('over').classList.add('hide');hud();
 }
-function gameOver(){
+function gameOver(){window.Conta&&Conta.submit('enxame',score);
   state='over';n=0;
   var rec=hi.set(score);
-  $('msg').textContent=rec&&score>0?'Novo recorde! 🎉':'O enxame se apagou';
+  $('msg').textContent=rec&&score>0?'Novo recorde!':'O enxame se apagou';
   $('sub').textContent='Você fez '+score+' pontos em '+Math.floor(time)+'s.';
   $('go').textContent='Jogar de novo';$('over').classList.remove('hide');hud();
 }
@@ -163,12 +163,12 @@ function gameOver(){
 /* ---------- simulação ---------- */
 function sim(dt,t){
   var nv=voids.length,no=state==='play'?orbs.length:0,j,cnt=[0,0,0,0];
-  var damp=Math.exp(-3.1*dt),T=1.15;
+  var damp=Math.exp(-4.2*dt),T=.7;
   var t1=t*.31,t2=t*.27,t3=t*.53,t4=t*.47,eaten=0;
   var i=0,o=0;
   while(i<n){
     var x=D[o],y=D[o+1],vx=D[o+2],vy=D[o+3],s=SEED[i];
-    var dx=tx-x,dy=ty-y,k=2.6+8.5*s,sw=((i&1)?.6:-.6)*k;
+    var dx=tx-x,dy=ty-y,k=7+16*s,sw=((i&1)?.28:-.28)*k;
     var ax=dx*k-dy*sw,ay=dy*k+dx*sw;
     // turbulência: rotacional (curl) de um potencial escalar de duas oitavas => campo sem divergência
     var a1=((x*2.3+t1)*KS)&4095,b1=((y*2.9-t2)*KS)&4095,a2=((x*5.3-t3+1.7)*KS)&4095,b2=((y*4.7+t4)*KS)&4095;
@@ -176,7 +176,7 @@ function sim(dt,t){
     ay+=T*(-2.3*ST[(a1+1024)&4095]*ST[(b1+1024)&4095]-2.65*ST[(a2+1024)&4095]*ST[(b2+1024)&4095]);
     var dead=false;
     for(j=0;j<nv;j++){var v=voids[j],ex=v.x-x,ey=v.y-y,d2=ex*ex+ey*ey,r2=v.r*v.r;
-      if(d2<r2*6.5){if(d2<r2*.3){dead=true;break}var f=5.5*r2/(d2+r2*.2);var il=1/Math.sqrt(d2);ax+=ex*il*f;ay+=ey*il*f}}
+      if(d2<r2*6.5){if(d2<r2*.42){dead=true;break}var f=7.5*r2/(d2+r2*.2);var il=1/Math.sqrt(d2);ax+=ex*il*f;ay+=ey*il*f}}
     if(dead){n--;eaten++;var l=n*4;D[o]=D[l];D[o+1]=D[l+1];D[o+2]=D[l+2];D[o+3]=D[l+3];continue}
     for(j=0;j<no;j++){var ob=orbs[j],ox=ob.x-x,oy=ob.y-y;if(ox*ox+oy*oy<ob.r*ob.r*1.7)cnt[j]++}
     vx=(vx+ax*dt)*damp;vy=(vy+ay*dt)*damp;x+=vx*dt;y+=vy*dt;
@@ -195,15 +195,17 @@ function step(dt,t){
   hurt*=Math.exp(-3*dt);
   if(state==='play'||state==='over'){
     for(var j=0;j<voids.length;j++){var v=voids[j];v.age+=dt;v.r=v.R*Math.min(1,v.age/1.5);
-      if(state==='play'){var dx=tx-v.x,dy=ty-v.y,l=Math.hypot(dx,dy)+1e-3,ac=.05+time*.0012;v.vx+=dx/l*ac*dt;v.vy+=dy/l*ac*dt}
-      var vm=Math.min(.42,.17+time*.0035),s=Math.hypot(v.vx,v.vy);if(s>vm){v.vx*=vm/s;v.vy*=vm/s}
+      if(state==='play'){var dx=tx-v.x,dy=ty-v.y,l=Math.hypot(dx,dy)+1e-3,ac=.07+time*.002;v.vx+=dx/l*ac*dt;v.vy+=dy/l*ac*dt}
+      var vm=Math.min(.6,.22+time*.005),s=Math.hypot(v.vx,v.vy);if(s>vm){v.vx*=vm/s;v.vy*=vm/s}
+      for(var m=0;m<voids.length;m++){if(m===j)continue;var u=voids[m],sx=v.x-u.x,sy=v.y-u.y,sd=Math.hypot(sx,sy)+1e-3,gap=(v.R+u.R)*2.1;
+        if(sd<gap){var push=(gap-sd)/gap*2.2*dt;v.vx+=sx/sd*push;v.vy+=sy/sd*push}}
       v.x+=v.vx*dt;v.y+=v.vy*dt;
       if(v.x<-A&&v.vx<0||v.x>A&&v.vx>0)v.vx=-v.vx;if(v.y<-1&&v.vy<0||v.y>1&&v.vy>0)v.vy=-v.vy}
   }
   var cnt=sim(dt,t);
   if(state==='play'){
     time+=dt;
-    var want=Math.min(A<.8?4:6,2+Math.floor(time/14));
+    var want=Math.min(A<.8?7:10,3+Math.floor(time/8));
     if(voids.length<want)addVoid();
     for(j=0;j<orbs.length;j++){var ob=orbs[j];ob.age+=dt;
       ob.charge=Math.max(0,ob.charge+dt*(cnt[j]/Math.max(120,n*.06)*5-.25));
@@ -248,7 +250,7 @@ function render(dt,t){
   gl.useProgram(pComp.prog);
   gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,tex);gl.uniform1i(pComp.u.uTex,0);
   gl.uniform2f(pComp.u.uRes,W,H);gl.uniform1f(pComp.u.uT,t);gl.uniform1f(pComp.u.uA,A);
-  for(j=0;j<6;j++){var v=voids[j];uVoid[j*3]=v?v.x:0;uVoid[j*3+1]=v?v.y:0;uVoid[j*3+2]=v?v.r:0}
+  for(j=0;j<10;j++){var v=voids[j];uVoid[j*3]=v?v.x:0;uVoid[j*3+1]=v?v.y:0;uVoid[j*3+2]=v?v.r:0}
   for(j=0;j<4;j++){var ob=state==='play'?orbs[j]:null;uOrb[j*4]=ob?ob.x:0;uOrb[j*4+1]=ob?ob.y:0;uOrb[j*4+2]=ob?ob.r*Math.min(1,ob.age*3):0;uOrb[j*4+3]=ob?Math.min(1,ob.charge):0}
   gl.uniform3fv(pComp.u.uVoid,uVoid);gl.uniform4fv(pComp.u.uOrb,uOrb);
   gl.uniform3f(pComp.u.uTgt,tx,ty,state==='play'?1:0);gl.uniform1f(pComp.u.uHurt,hurt);
@@ -277,4 +279,4 @@ $('go').onclick=start;$('novo').onclick=start;
 resize();spawn(START,0,0,.3,.5);hud();
 window.__enxame={get state(){return state},get n(){return n},get score(){return score},get voids(){return voids},get orbs(){return orbs},get A(){return A},get q(){return q.value},max:MAX};
 })();
-</script></body></html>
+</script><script src="config.js"></script><script src="conta.js"></script></body></html>

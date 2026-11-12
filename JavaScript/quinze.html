@@ -1,0 +1,47 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quinze</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css">
+<style>.q{position:relative;width:min(100%,420px);aspect-ratio:1;background:#0b0d14;border:2px solid var(--line);border-radius:12px;overflow:hidden;user-select:none;touch-action:manipulation;transition:border-color .3s,box-shadow .3s}
+.q.won{border-color:var(--acc);box-shadow:0 0 28px rgba(110,231,183,.35)}
+.t{position:absolute;left:0;top:0;padding:3px;cursor:pointer;transition:transform .15s ease-out;will-change:transform}
+.t span{display:flex;align-items:center;justify-content:center;width:100%;height:100%;border-radius:9px;background:linear-gradient(160deg,#283050,#1b1f2e);border:1px solid var(--line);font-weight:700;font-variant-numeric:tabular-nums;transition:color .2s,border-color .2s}
+.t:hover span{border-color:var(--acc2)}
+.t.ok span{color:var(--acc);border-color:#2f6b5a}
+.q.won .t span{background:linear-gradient(160deg,#1f5a48,#1b2f2e)}
+.msg i[data-ic]{color:var(--warn)}</style></head><body data-fx="off">
+<header><a class="back" href="index.html"><i data-ic="voltar"></i><span>Jogos</span></a><h1><i data-ic="quinze"></i> Quinze</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
+<div class="bar"><select id="n" aria-label="Tamanho"><option value="3">3×3</option><option value="4" selected>4×4</option><option value="5">5×5</option></select>
+<span class="stat">Movimentos <b id="mv">0</b></span><span class="stat">Tempo <b id="tm">0:00</b></span><span class="stat">Melhor <b id="best">–</b></span><button id="new" class="primary">Novo jogo</button></div>
+<div class="msg" id="msg"></div>
+<div class="q" id="q"></div>
+<p class="hint">Coloque as peças em ordem, com o espaço vazio no canto inferior direito. Toque em uma peça na linha ou coluna do espaço vazio para deslizar (várias de uma vez), ou use as setas do teclado.</p>
+</main><script src="icons.js"></script><script>
+const $=i=>document.getElementById(i),Q=$('q');
+let n=4,a=[],blank=0,mv=0,sec=0,t0=0,tick=0,done=false,els=[],path=[];
+function adj(b,n){const r=b/n|0,c=b%n,o=[];if(r)o.push(b-n);if(r<n-1)o.push(b+n);if(c)o.push(b-1);if(c<n-1)o.push(b+1);return o}
+// Embaralha com movimentos legais a partir do estado resolvido: sempre tem solução.
+function shuffle(n){const N=n*n,a=[];for(let i=0;i<N;i++)a.push((i+1)%N);let b=N-1,prev=-1;const path=[];
+ do{for(let k=0;k<N*30;k++){const o=adj(b,n).filter(i=>i!==prev),i=o[Math.random()*o.length|0];a[b]=a[i];a[i]=0;path.push(b);prev=b;b=i}}while(a.every((v,i)=>v===(i+1)%N));
+ return{a,b,path}}
+function fmt(s){return(s/60|0)+':'+String(s%60).padStart(2,'0')}
+function bestKey(){return'quinze-best-'+n}
+function getBest(){try{return+localStorage.getItem(bestKey())||0}catch(e){return 0}}
+function start(){n=+$('n').value;const s=shuffle(n);a=s.a;blank=s.b;path=s.path;mv=0;sec=0;t0=0;done=false;clearInterval(tick);tick=0;
+ Q.className='q';Q.style.fontSize='min('+(34/n).toFixed(2)+'vw,'+(150/n|0)+'px)';Q.innerHTML='';els=[];
+ for(let v=1;v<n*n;v++){const e=document.createElement('div');e.className='t';e.style.width=e.style.height=100/n+'%';e.innerHTML='<span>'+v+'</span>';
+  e.onclick=()=>move(a.indexOf(v));Q.appendChild(e);els[v]=e}
+ $('msg').textContent='';const b=getBest();$('best').textContent=b||'–';draw()}
+function draw(){a.forEach((v,i)=>{if(!v)return;const e=els[v];e.style.transform='translate('+(i%n)*100+'%,'+(i/n|0)*100+'%)';e.classList.toggle('ok',v===i+1)});
+ $('mv').textContent=mv;$('tm').textContent=fmt(sec)}
+function move(i){if(done||i===blank||i<0||i>=n*n)return false;const r=i/n|0,c=i%n,br=blank/n|0,bc=blank%n;let d;
+ if(r===br)d=c<bc?-1:1;else if(c===bc)d=r<br?-n:n;else return false;
+ while(blank!==i){a[blank]=a[blank+d];blank+=d;a[blank]=0;mv++}
+ if(!tick){t0=Date.now();tick=setInterval(()=>{sec=(Date.now()-t0)/1000|0;$('tm').textContent=fmt(sec)},250)}
+ if(a.every((v,k)=>v===(k+1)%(n*n)))win();draw();return true}
+function win(){done=true;clearInterval(tick);tick=0;sec=(Date.now()-t0)/1000|0;Q.classList.add('won');const b=getBest(),rec=!b||mv<b;
+ if(rec){try{localStorage.setItem(bestKey(),mv)}catch(e){}$('best').textContent=mv}
+ $('msg').innerHTML=icon('trofeu')+' Resolvido em '+mv+' movimentos e '+fmt(sec)+(rec?' — novo recorde!':'');if(window.fillIcons)fillIcons()}
+addEventListener('keydown',e=>{if(e.target.tagName==='SELECT')return;const r=blank/n|0,c=blank%n;let i=-1;
+ if(e.key==='ArrowUp'){if(r<n-1)i=blank+n}else if(e.key==='ArrowDown'){if(r)i=blank-n}else if(e.key==='ArrowLeft'){if(c<n-1)i=blank+1}else if(e.key==='ArrowRight'){if(c)i=blank-1}else return;
+ e.preventDefault();move(i)});
+$('new').onclick=function(){this.blur();start()};$('n').onchange=function(){this.blur();start()};start();
+</script><script src="config.js"></script><script src="conta.js"></script><script src="fx.js" defer></script></body></html>

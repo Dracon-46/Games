@@ -7,7 +7,7 @@
 
   G.noGL = function (host, why) {
     try { console.warn('[gfx] WebGL indisponível: ' + (why || '')); } catch (e) {}
-    if (host) host.innerHTML = '<p class="msg" style="padding:40px 16px">😕 Não foi possível iniciar o WebGL neste navegador.<br>' +
+    if (host) host.innerHTML = '<p class="msg" style="padding:40px 16px">Não foi possível iniciar o WebGL neste navegador.<br>' +
       '<span class="hint">Atualize o navegador ou ative a aceleração de hardware e tente de novo.</span></p>';
   };
 

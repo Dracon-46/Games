@@ -1,5 +1,5 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Reversi</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css">
+<title>Reversi</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css"><script src="icons.js"></script>
 <style>.board{grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);gap:2px;background:#0d3b2c;touch-action:manipulation}
 .board>div{background:#1f6f54}
 .board>div::after{content:'';border-radius:50%;width:0;height:0}
@@ -8,8 +8,8 @@
 .board>div.h::after{width:24%;height:24%;background:rgba(255,255,255,.4)}
 .board>div.last{box-shadow:inset 0 0 0 2px var(--warn)}
 .board>div.cur{outline:2px solid var(--acc2);outline-offset:-2px;z-index:1}
-.dot{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-1px;margin-right:4px;border:1px solid var(--mut)}</style></head><body>
-<header><a href="index.html">← Jogos</a><h1>⚫ Reversi</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-1px;margin-right:4px;border:1px solid var(--mut)}</style></head><body data-fx="off">
+<header><a class="back" href="index.html"><i data-ic="voltar"></i><span>Jogos</span></a><h1><i data-ic="reversi"></i> Reversi</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
 <div class="bar"><select id="lv"><option value="1">Fácil</option><option value="2" selected>Médio</option><option value="3">Difícil</option><option value="0">2 jogadores</option></select>
 <span class="stat"><span class="dot" style="background:#14161f"></span>Pretas <b id="cb">2</b></span><span class="stat"><span class="dot" style="background:#f1f3f8"></span>Brancas <b id="cw">2</b></span>
 <button id="new" class="primary">Novo jogo</button></div>
@@ -39,7 +39,7 @@ function start(){tok++;bd=Array(64).fill(0);bd[27]=bd[36]=-1;bd[28]=bd[35]=1;tur
 function render(){const ms=over||(lv&&turn===-1)?[]:moves(bd,turn);
  els.forEach((d,i)=>d.className=(bd[i]===1?'b':bd[i]===-1?'w':ms.some(m=>m.i===i)?'h':'')+(i===last?' last':'')+(i===cur?' cur':''));
  const b=count(bd,1),w=count(bd,-1);$('cb').textContent=b;$('cw').textContent=w;
- if(over)$('msg').textContent=b===w?'🤝 Empate, '+b+' × '+w+'!':lv?(b>w?'🎉 Você venceu por '+b+' × '+w+'!':'😵 Você perdeu por '+w+' × '+b+'.'):'🎉 '+(b>w?'Pretas':'Brancas')+' venceram por '+Math.max(b,w)+' × '+Math.min(b,w)+'!';
+ if(over)$('msg').textContent=b===w?'Empate, '+b+' × '+w+'!':lv?(b>w?'Você venceu por '+b+' × '+w+'!':'Você perdeu por '+w+' × '+b+'.'):''+(b>w?'Pretas':'Brancas')+' venceram por '+Math.max(b,w)+' × '+Math.min(b,w)+'!';
  else $('msg').textContent=note+(lv?(turn===1?'Sua vez (pretas)':'Computador pensando…'):'Vez das '+(turn===1?'pretas':'brancas'))}
 function place(m){bd=play(bd,m,turn);last=m.i;turn=-turn;note='';
  if(!moves(bd,turn).length){if(!moves(bd,-turn).length)over=true;else{note=name(turn)+(lv?' não tem':' não têm')+' jogadas e passa a vez. ';turn=-turn}}
@@ -49,4 +49,4 @@ addEventListener('keydown',e=>{const m={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft
  if(m){e.preventDefault();if(cur<0)cur=27;else cur=Math.max(0,Math.min(7,(cur>>3)+m[1]))*8+Math.max(0,Math.min(7,(cur&7)+m[0]));render()}
  else if((e.key===' '||e.key==='Enter')&&cur>=0&&e.target.tagName!=='SELECT'){e.preventDefault();human(cur)}});
 $('new').onclick=function(){this.blur();start()};$('lv').onchange=function(){this.blur();start()};start();
-</script><script src="fx.js" defer></script></body></html>
+</script><script src="config.js"></script><script src="conta.js"></script><script src="fx.js" defer></script></body></html>

@@ -1,6 +1,6 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Órbita</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css"></head><body>
-<header><a href="index.html">← Jogos</a><h1>🪐 Órbita</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
+<title>Órbita</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css"><script src="icons.js"></script></head><body data-fx="off">
+<header><a class="back" href="index.html"><i data-ic="voltar"></i><span>Jogos</span></a><h1><i data-ic="orbita"></i> Órbita</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
 <div class="bar"><span class="stat">Pontos <b id="sc">0</b></span><span class="stat">Recorde <b id="hi">0</b></span><button id="new" class="primary">Novo jogo</button></div>
 <canvas id="c" width="400" height="400"></canvas>
 <div class="msg" id="msg"></div>
@@ -20,9 +20,9 @@ function start(){ring=1;pr=R[1];pa=-Math.PI/2;dirn=1;spd=1.6;gems=[];haz=[];scor
  st='play';$('sc').textContent=0;$('msg').textContent=''}
 function hop(d){if(st!=='play'){if(performance.now()-deadAt>500)start();return}
  if(d){const n=ring+d;if(n<0||n>2)return;ring=n}else{if(ring+dirn<0||ring+dirn>2)dirn=-dirn;ring+=dirn}}
-function over(){st='over';deadAt=performance.now();const rec=score>hi;
+function over(){window.Conta&&Conta.submit('orbita',score);st='over';deadAt=performance.now();const rec=score>hi;
  if(rec){hi=score;try{localStorage.setItem('orbita-hi',hi)}catch(e){}$('hi').textContent=hi}
- $('msg').textContent='💥 Fim de jogo! Pontos: '+score+(rec&&score?' — novo recorde!':'')}
+ $('msg').textContent='Fim de jogo! Pontos: '+score+(rec&&score?' — novo recorde!':'')}
 function step(dt){t+=dt;spd=Math.min(3.2,1.6+t*.02);pa+=spd*dt;
  const d=R[ring]-pr;pr+=Math.sign(d)*Math.min(Math.abs(d),500*dt);
  haz.forEach(h=>{h.a+=h.w*(1+t*.008)*dt;h.g-=dt});
@@ -48,4 +48,4 @@ addEventListener('keydown',e=>{if(e.repeat)return;const k=e.key;
  if(k===' '||k==='Enter'){e.preventDefault();hop(0)}else if(k==='ArrowUp'||k==='w'||k==='W'){e.preventDefault();hop(1)}else if(k==='ArrowDown'||k==='s'||k==='S'){e.preventDefault();hop(-1)}});
 $('new').onclick=function(){this.blur();start()};
 requestAnimationFrame(loop);
-</script><script src="fx.js" defer></script></body></html>
+</script><script src="config.js"></script><script src="conta.js"></script><script src="fx.js" defer></script></body></html>

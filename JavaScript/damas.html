@@ -1,10 +1,10 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Damas</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css">
+<title>Damas</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css"><script src="icons.js"></script>
 <style>.board{grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr)}.board>div{min-height:0;overflow:hidden}.l{background:#d9dfee;cursor:default!important}.d{background:#5b6d99}
 .pc{width:76%;height:76%;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:clamp(14px,5vw,24px);box-shadow:0 3px 0 rgba(0,0,0,.35),inset 0 0 0 4px rgba(255,255,255,.18)}
 .pw{background:#f4f1e8;color:#b8860b}.pb{background:#23252f;color:#ffd166}.can .pc{outline:2px solid var(--acc)}.sel{box-shadow:inset 0 0 0 100px rgba(110,231,183,.5)}
-.last{box-shadow:inset 0 0 0 100px rgba(255,209,102,.3)}.to::after{content:"";position:absolute;width:30%;height:30%;border-radius:50%;background:var(--acc)}</style></head><body>
-<header><a href="index.html">← Jogos</a><h1>⛀ Damas</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
+.last{box-shadow:inset 0 0 0 100px rgba(255,209,102,.3)}.to::after{content:"";position:absolute;width:30%;height:30%;border-radius:50%;background:var(--acc)}</style></head><body data-fx="off">
+<header><a class="back" href="index.html"><i data-ic="voltar"></i><span>Jogos</span></a><h1><i data-ic="damas"></i> Damas</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
 <div class="bar"><select id="lv"><option value="2">Fácil</option><option value="5" selected>Médio</option><option value="8">Difícil</option></select>
 <span class="stat">Você <b id="nw">12</b></span><span class="stat">Máquina <b id="nb">12</b></span><button id="new" class="primary">Novo jogo</button></div>
 <div class="msg" id="msg"></div><div class="board" id="bd"></div>
@@ -12,7 +12,7 @@
 </main><script src="damas-engine.js"></script><script>
 const $=i=>document.getElementById(i);let b,turn,pre,ms,last,over,quiet;
 function start(){b=Damas.start();turn='w';pre=[];last=[];over=false;quiet=0;next()}
-function next(){ms=Damas.moves(b,turn);if(!ms.length){over=true;$('msg').textContent=turn==='w'?'Você perdeu!':'🎉 Você venceu!'}
+function next(){ms=Damas.moves(b,turn);if(!ms.length){over=true;$('msg').textContent=turn==='w'?'Você perdeu!':'Você venceu!'}
  else if(quiet>=40){over=true;$('msg').textContent='Empate (20 lances de dama sem captura).'}
  else $('msg').textContent=turn==='w'?(ms[0].caps.length?'Sua vez — captura obrigatória':'Sua vez'):'Máquina pensando...';
  draw();if(!over&&turn==='b')setTimeout(()=>go(Damas.best(b,'b',+$('lv').value)),350)}
@@ -28,4 +28,4 @@ function click(i){if(over||turn!=='w')return;
  pre=ms.some(m=>m.path[0]===i)&&pre[0]!==i?[i]:[];draw()}
 function go(m){if(!m)return;const p=b[m.path[0]];quiet=p<'a'&&!m.caps.length?quiet+1:0;b=Damas.apply(b,m);last=m.path;pre=[];turn=turn==='w'?'b':'w';next()}
 $('new').onclick=start;start();
-</script><script src="fx.js" defer></script></body></html>
+</script><script src="config.js"></script><script src="conta.js"></script><script src="fx.js" defer></script></body></html>

@@ -1,20 +1,20 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Memória</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css">
+<title>Memória</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css"><script src="icons.js"></script>
 <style>.board{grid-template-columns:repeat(4,1fr);gap:8px;border:0;width:min(100%,400px);aspect-ratio:auto}.board>div{aspect-ratio:1;background:var(--acc2);border-radius:12px;font-size:clamp(28px,9vw,44px);transition:transform .2s,background .2s}
-.board>div span{visibility:hidden}.board>div.up{background:var(--card);transform:rotateY(180deg)}.board>div.up span{visibility:visible;transform:rotateY(180deg)}.board>div.ok{background:#1f3a33}</style></head><body>
-<header><a href="index.html">← Jogos</a><h1>🃏 Memória</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
+.board>div span{visibility:hidden}.board>div.up{background:var(--card);transform:rotateY(180deg)}.board>div.up span{visibility:visible;transform:rotateY(180deg)}.board>div.ok{background:#1f3a33}</style></head><body data-fx="off">
+<header><a class="back" href="index.html"><i data-ic="voltar"></i><span>Jogos</span></a><h1><i data-ic="memoria"></i> Memória</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
 <div class="bar"><span class="stat">Jogadas <b id="mv">0</b></span><span class="stat">Pares <b id="pr">0</b>/8</span><button id="new" class="primary">Novo jogo</button></div>
 <div class="msg" id="msg"></div><div class="board" id="bd"></div>
 </main><script>
-const EM=['🐶','🐱','🦊','🐸','🐼','🦁','🐙','🦄','🐵','🐧','🐢','🦋'],$=i=>document.getElementById(i);
+const EM=['estrela','coracao','lua','sol','raio','gota','diamante','folha','nuvem','bandeira','trofeu','pena'],$=i=>document.getElementById(i);
 let open,lock,mv,pr;
 function start(){const pick=EM.slice().sort(()=>Math.random()-.5).slice(0,8),cards=[...pick,...pick];
  for(let i=cards.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[cards[i],cards[j]]=[cards[j],cards[i]]}
  open=[];lock=false;mv=pr=0;$('mv').textContent=0;$('pr').textContent=0;$('msg').textContent='';$('bd').innerHTML='';
- cards.forEach(e=>{const d=document.createElement('div');d.innerHTML='<span>'+e+'</span>';d.onclick=()=>flip(d,e);$('bd').append(d)})}
+ cards.forEach(e=>{const d=document.createElement('div');d.innerHTML='<span>'+icon(e)+'</span>';d.onclick=()=>flip(d,e);$('bd').append(d)})}
 function flip(d,e){if(lock||d.classList.contains('up'))return;d.classList.add('up');open.push({d,e});if(open.length<2)return;
  $('mv').textContent=++mv;const[a,b]=open;open=[];
- if(a.e===b.e){a.d.classList.add('ok');b.d.classList.add('ok');$('pr').textContent=++pr;if(pr===8)$('msg').textContent='🎉 Você completou em '+mv+' jogadas!'}
+ if(a.e===b.e){a.d.classList.add('ok');b.d.classList.add('ok');$('pr').textContent=++pr;if(pr===8)$('msg').textContent='Você completou em '+mv+' jogadas!'}
  else{lock=true;setTimeout(()=>{a.d.classList.remove('up');b.d.classList.remove('up');lock=false},750)}}
 $('new').onclick=start;start();
-</script><script src="fx.js" defer></script></body></html>
+</script><script src="config.js"></script><script src="conta.js"></script><script src="fx.js" defer></script></body></html>

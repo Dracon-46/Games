@@ -1,5 +1,5 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Xadrez</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css">
+<title>Xadrez</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css"><script src="icons.js"></script>
 <style>
 main{max-width:1000px}
 .game{display:flex;flex-wrap:wrap;gap:18px;justify-content:center;align-items:flex-start;width:100%}
@@ -19,11 +19,14 @@ main{max-width:1000px}
 #mv span{color:var(--mut)}#mv b{font-weight:500;margin-right:8px}
 #promo{position:absolute;inset:0;background:rgba(11,13,20,.75);display:none;align-items:center;justify-content:center;gap:10px;z-index:5;cursor:default}
 #promo button{font-size:44px;line-height:1;padding:8px 12px;background:#d9dfee;color:#14161f}
+#lobby{border:1px solid var(--line);border-radius:10px;padding:14px;background:var(--card);display:flex;flex-direction:column;gap:10px}
+#lobby b.t{font-size:17px}#lobby p{margin:0;color:var(--mut);font-size:14px}#lobby .row{display:flex;gap:8px;flex-wrap:wrap}#lobby input{flex:1;min-width:0;font:inherit;color:var(--fg);background:#0b0d14;border:1px solid var(--line);border-radius:10px;padding:8px 12px;text-transform:uppercase}
+#lobby .code{font:700 30px ui-monospace,monospace;letter-spacing:.2em;color:var(--acc)}#lobby .room{display:flex;align-items:center;gap:10px;justify-content:space-between;border-top:1px solid var(--line);padding-top:8px;font-size:14px}
 label.f{display:flex;flex-direction:column;font-size:12px;color:var(--mut);gap:2px}
-</style></head><body>
-<header><a href="index.html">← Jogos</a><h1>♞ Xadrez</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
+</style></head><body data-fx="off">
+<header><a class="back" href="index.html"><i data-ic="voltar"></i><span>Jogos</span></a><h1><i data-ic="xadrez"></i> Xadrez</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
 <div class="bar">
-<label class="f">Modo<select id="mode"><option value="cpu">Contra o computador</option><option value="2p">2 jogadores (mesma tela)</option><option value="cvc">Computador × Computador</option></select></label>
+<label class="f">Modo<select id="mode"><option value="cpu">Contra o computador</option><option value="2p">2 jogadores (mesma tela)</option><option value="cvc">Computador × Computador</option><option value="on">Online (outra pessoa)</option></select></label>
 <label class="f">Sua cor<select id="side"><option value="w">Brancas</option><option value="b">Pretas</option><option value="r">Sorteio</option></select></label>
 <label class="f">Nível<select id="lv"><option value="1">Iniciante</option><option value="2">Fácil</option><option value="3" selected>Médio</option><option value="4">Difícil</option><option value="5">Mestre</option></select></label>
 <label class="f">Variante<select id="var"><option value="c">Clássico</option><option value="9">Chess960 (posição sorteada)</option><option value="k">Rei da Colina</option><option value="3">Três Xeques</option></select></label>
@@ -33,32 +36,68 @@ label.f{display:flex;flex-direction:column;font-size:12px;color:var(--mut);gap:2
 <div class="pl" id="pT"></div>
 <div class="board" id="bd"></div>
 <div class="pl" id="pB"></div></div>
-<div class="panel"><div class="msg" id="msg"></div><div id="mv"></div>
+<div class="panel"><div id="lobby" hidden></div><div class="msg" id="msg"></div><div id="mv"></div>
 <div class="bar"><button id="undo">Desfazer</button><button id="flip">Virar tabuleiro</button><button id="hintb">Dica</button><button id="resign">Desistir</button></div>
 <p class="hint" id="rule"></p></div></div>
-</main><script src="xadrez-engine.js"></script><script>
+</main><script src="config.js"></script><script src="conta.js"></script><script src="xadrez-engine.js"></script><script>
 const $=i=>document.getElementById(i),G={K:'♚',Q:'♛',R:'♜',B:'♝',N:'♞',P:'♟'},NM={w:'Brancas',b:'Pretas'};
 const LV={1:{depth:1,rand:.4},2:{depth:2,rand:.08},3:{depth:3},4:{depth:5,time:1500},5:{depth:40,time:4000}};
 const RULES={c:'Xadrez clássico: roque, en passant, promoção à escolha, empate por afogamento, tripla repetição, 50 lances e material insuficiente.',
  9:'Chess960: a fileira inicial é sorteada. Para rocar, clique no rei e depois na torre.',k:'Rei da Colina: além do xeque-mate, vence quem levar o rei a uma das 4 casas centrais.',3:'Três Xeques: além do xeque-mate, vence quem der três xeques.'};
-let s,hist,sel,last,over,cfg,flip,clk,inc,tok=0,hint,lm,tick=0,busy=false;
+let s,hist,sel,last,over,cfg,flip,clk,inc,tok=0,hint,lm,tick=0,busy=false,on=null;
 // ---- IA em Web Worker (para não travar o relógio); cai para execução direta se o Worker não estiver disponível ----
 let wk=null,pend={},rid=0;
 try{wk=new Worker('xadrez-worker.js');wk.onmessage=e=>{const cb=pend[e.data.id];delete pend[e.data.id];cb&&cb(e.data.m)};
  wk.onerror=()=>{wk=null;const p=pend;pend={};for(const k in p)p[k].run()}}catch(e){wk=null}
 function think(st,o,cb){const run=()=>setTimeout(()=>cb(Chess.best(st,o)),30);if(!wk)return run();const id=++rid;cb.run=run;pend[id]=cb;wk.postMessage({id,s:st,o})}
-const human=t=>cfg.mode==='2p'||(cfg.mode==='cpu'&&t===cfg.me);
+const human=t=>cfg.mode==='on'?!!(on&&on.live&&t===on.me):cfg.mode==='2p'||(cfg.mode==='cpu'&&t===cfg.me);
 function newGame(){const tc=$('tc').value.split(',').map(Number);cfg={mode:$('mode').value,me:$('side').value,lv:+$('lv').value,v:$('var').value,tc:tc[0]};
+ stopOnline();if(cfg.mode==='on')cfg.tc=0;
  if(cfg.me==='r')cfg.me=Math.random()<.5?'w':'b';inc=(tc[1]||0)*1000;clk={w:cfg.tc*60000,b:cfg.tc*60000};
  s=Chess.start(cfg.v);hist=[];sel=-1;last=null;over='';hint=null;flip=cfg.mode==='cpu'&&cfg.me==='b';tok++;busy=false;
- $('rule').textContent=RULES[cfg.v];$('side').disabled=$('mode').value!=='cpu';draw();ai()}
+ $('rule').textContent=RULES[cfg.v];$('side').disabled=$('mode').value==='2p'||$('mode').value==='cvc';draw();if(cfg.mode==='on')lobby();else ai()}
 function result(){const w=Chess.varWinner(s);if(w)return NM[w]+' vencem — '+(s.v==='k'?'rei na colina!':'três xeques!');
  if(!lm.length)return Chess.inCheck(s,s.t)?'Xeque-mate! '+NM[s.t==='w'?'b':'w']+' vencem.':'Empate por afogamento.';
  if(s.h>=100)return'Empate pela regra dos 50 lances.';const k=Chess.key(s);if(hist.filter(h=>h.key===k).length>=2)return'Empate por tripla repetição.';
  if(s.v!=='k'&&Chess.insufficient(s.b))return'Empate por material insuficiente.';return''}
-function play(m){hist.push({s,last,key:Chess.key(s),san:Chess.san(s,m),clk:{w:clk.w,b:clk.b}});if(cfg.tc)clk[s.t]+=inc;
- s=Chess.make(s,m);last=m;sel=-1;hint=null;lm=Chess.legal(s);over=result();tick=Date.now();draw();ai()}
-function ai(){if(over||human(s.t))return;const my=tok,t0=Date.now();busy=true;
+function play(m){const key=Chess.key(s),san=Chess.san(s,m);hist.push({s,last,key,san,clk:{w:clk.w,b:clk.b}});if(cfg.tc)clk[s.t]+=inc;
+ s=Chess.make(s,m);last=m;sel=-1;hint=null;lm=Chess.legal(s);over=result();tick=Date.now();draw();
+ if(cfg.mode==='on')sendMove({f:m.f,t:m.t,san,k:key});else ai()}
+// ---- Xadrez online: o servidor guarda o estado; cada cliente consulta a partida a cada 1,5 s ----
+const mine=()=>typeof Conta!=='undefined'&&Conta.on;
+function stopOnline(){if(on){clearInterval(on.poll);on=null}$('lobby').hidden=true}
+function lobby(note){const L=$('lobby');L.hidden=false;
+ if(!mine()){L.innerHTML='<b class="t">Xadrez online</b><p>O modo online ainda não foi ativado neste site.</p>';return}
+ if(!Conta.user){L.innerHTML='<b class="t">Xadrez online</b><p>Entre na sua conta para jogar contra outras pessoas.</p><div class="row"><button class="primary" id="lg">Entrar ou criar conta</button></div>';$('lg').onclick=()=>Conta.open(()=>lobby());return}
+ L.innerHTML='<b class="t">Xadrez online</b><p id="ln"></p><div class="row"><button class="primary" id="mk">Criar sala</button><button id="rf">Atualizar salas</button></div><div class="row"><input id="cd" maxlength="6" placeholder="Código da sala" aria-label="Código da sala"><button id="jn">Entrar</button></div><div id="rooms"></div>';
+ $('ln').textContent=note||'Crie uma sala (com a cor e a variante escolhidas acima) e passe o código, ou entre numa sala aberta.';
+ $('mk').onclick=()=>Conta.rpc('chess_create',{p_state:Chess.start($('var').value),p_color:cfg.me}).then(enter,e=>lobby(e.message));
+ const join=c=>Conta.rpc('chess_join',{p_code:c}).then(enter,e=>lobby(e.message));
+ $('jn').onclick=()=>{const c=$('cd').value.trim();if(c)join(c)};$('cd').onkeydown=e=>{if(e.key==='Enter')$('jn').click()};$('rf').onclick=()=>lobby();
+ Conta.rpc('chess_lobby',{}).then(d=>{if(!$('rooms'))return;const mineG=d.mine.filter(g=>g.status==='playing');
+  $('rooms').innerHTML=mineG.map(g=>'<div class="room"><span>Sua partida em andamento</span><button data-c="'+g.code+'">Continuar</button></div>').join('')
+   +(d.open.length?d.open.map(o=>'<div class="room"><span><b></b> · '+o.rating+' · você joga de '+(o.seat==='w'?'brancas':'pretas')+(o.variant&&o.variant!=='c'?' · '+({9:'Chess960',k:'Rei da Colina',3:'Três Xeques'})[o.variant]:'')+'</span><button data-c="'+o.code+'">Jogar</button></div>').join(''):'<div class="room"><span style="color:var(--mut)">Nenhuma sala aberta no momento.</span></div>');
+  d.open.forEach((o,i)=>{$('rooms').querySelectorAll('.room b')[i].textContent=o.host});$('rooms').querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>join(b.dataset.c))},()=>{})}
+function enter(g){if(!g)return lobby();clearInterval(on&&on.poll);on={id:g.id,first:true,sending:false};
+ on.poll=setInterval(()=>{if(on&&!on.sending)Conta.rpc('chess_get',{p_id:on.id}).then(x=>{if(on&&!on.sending){if(x)sync(x);else{stopOnline();over='';lobby('A sala foi fechada.');draw()}}},()=>{})},1500);sync(g)}
+function sync(g){const fresh=on.first||g.moves.length!==hist.length||g.status!==on.status;on.g=g;on.me=g.me;on.status=g.status;on.live=g.status==='playing';
+ if(on.first){on.first=false;flip=g.me==='b';cfg.v=g.state.v;$('rule').textContent=RULES[cfg.v]}
+ if(fresh){s=g.state;hist=g.moves.map(m=>({san:m.san,key:m.k}));const l=g.moves[g.moves.length-1];last=l?{f:l.f,t:l.t}:null;sel=-1;lm=null}
+ const L=$('lobby');
+ if(g.status==='waiting'){L.hidden=false;L.innerHTML='<b class="t">Sala criada</b><p>Passe este código (ou o link) para o seu adversário:</p><div class="code"></div><div class="row"><button id="cp">Copiar link</button><button id="cx">Cancelar sala</button></div>';
+  L.querySelector('.code').textContent=g.code;const link=location.origin+location.pathname+'?sala='+g.code;
+  $('cp').onclick=()=>{(navigator.clipboard?navigator.clipboard.writeText(link):Promise.reject()).then(()=>{$('cp').textContent='Link copiado'},()=>{prompt('Copie o link:',link)})};
+  $('cx').onclick=()=>Conta.rpc('chess_resign',{p_id:on.id}).then(()=>{stopOnline();lobby()},()=>{})}
+ else L.hidden=true;
+ if(g.status==='done'){clearInterval(on.poll);const W=g.result==='d'?null:NM[g.result];
+  over=g.reason&&g.reason!=='desistência'?g.reason:g.result==='d'?'Empate.':NM[g.result==='w'?'b':'w']+' desistiram. '+W+' vencem.';
+  if(g.me&&g.result!=='d')over+=g.result===g.me?' Você venceu!':' Você perdeu.'}
+ else over='';
+ if(fresh||g.status!=='playing')draw()}
+function sendMove(mv){const ply=hist.length-1,res=over?(/^Empate/.test(over)?'d':on.me):null;on.sending=true;
+ Conta.rpc('chess_move',{p_id:on.id,p_ply:ply,p_state:s,p_move:mv,p_result:res,p_reason:over||null}).then(g=>{on.sending=false;sync(g)},
+  e=>{on.sending=false;Conta.toast(e.message);Conta.rpc('chess_get',{p_id:on.id}).then(g=>{hist=[null];if(g)sync(g)},()=>{})})}
+function ai(){if(over||human(s.t)||cfg.mode==='on')return;const my=tok,t0=Date.now();busy=true;
  const o=Object.assign({},LV[cfg.lv]);if(cfg.tc&&o.time)o.time=Math.max(150,Math.min(o.time,clk[s.t]/25));
  think(s,o,m=>{if(my!==tok)return;const go=()=>{if(my!==tok)return;busy=false;if(m&&!over)play(m)};const wait=(cfg.mode==='cvc'?500:250)-(Date.now()-t0);wait>0?setTimeout(go,wait):go()})}
 const tgt=m=>m.cs&&s.v==='9'?m.rf:m.t;
@@ -70,12 +109,13 @@ function promo(c){const el=$('promo');el.innerHTML='';el.style.display='flex';fo
 const fmt=ms=>{ms=Math.max(0,ms);const t=Math.ceil(ms/1000);return ms<10000?(ms/1000).toFixed(1):(t/60|0)+':'+String(t%60).padStart(2,'0')};
 function caps(t){const cnt={};for(const p of s.b)if(p!==' ')cnt[p]=(cnt[p]||0)+1;let o='';
  for(const[k,n]of[['Q',1],['R',2],['B',2],['N',2],['P',8]]){const p=t==='w'?k.toLowerCase():k;o+=(G[k]+'︎').repeat(Math.max(0,n-(cnt[p]||0)))}return o}
-function bar(el,t){const nm=cfg.mode==='2p'?NM[t]:cfg.mode==='cvc'?'Computador ('+NM[t]+')':t===cfg.me?'Você ('+NM[t]+')':'Computador ('+NM[t]+')';
+function bar(el,t){const og=on&&on.g,op=og&&(t==='w'?og.white:og.black);
+ const nm=cfg.mode==='on'?(op?op.name+' ('+op.rating+') · '+NM[t]+(og.me===t?' · você':''):on?'Aguardando adversário…':NM[t]):cfg.mode==='2p'?NM[t]:cfg.mode==='cvc'?'Computador ('+NM[t]+')':t===cfg.me?'Você ('+NM[t]+')':'Computador ('+NM[t]+')';
  el.className='pl'+(s.t===t&&!over?' act':'');el.innerHTML='<b></b><span class="cap"></span>'+(s.v==='3'?'<span>Xeques <b>'+(t==='w'?s.cw:s.cb)+'</b>/3</span>':'')+(cfg.tc?'<span class="ck" data-t="'+t+'"></span>':'');
  el.children[0].textContent=nm;el.children[1].textContent=caps(t);clocks()}
 function clocks(){document.querySelectorAll('.ck').forEach(e=>{const v=clk[e.dataset.t];e.textContent=fmt(v);e.classList.toggle('low',v<20000)})}
 function draw(){lm=lm&&hist.length&&lm.s===s?lm:Chess.legal(s);lm.s=s;const chk=Chess.inCheck(s,s.t),tg=sel>=0?lm.filter(m=>m.f===sel):[];
- $('msg').textContent=over||(NM[s.t]+' jogam'+(chk?' — xeque!':'')+(busy||!human(s.t)?' (computador pensando…)':''));
+ $('msg').textContent=over||(NM[s.t]+' jogam'+(chk?' — xeque!':'')+(cfg.mode==='on'?(!on?'':on.status==='waiting'?' — aguardando adversário':human(s.t)?' — sua vez':' — vez do adversário'):busy||!human(s.t)?' (computador pensando…)':''));
  const bd=$('bd');bd.innerHTML='<div id="promo"></div>';
  for(let v=0;v<64;v++){const i=flip?63-v:v,p=s.b[i],d=document.createElement('div'),r=i>>3,c=i&7,t=tg.find(m=>tgt(m)===i);
   d.className='sq '+((r+c)%2?'d':'l')+(p===' '?'':p<'a'?' w':' k')+(last&&(last.f===i||last.t===i)?' last':'')+(hint&&(hint.f===i||tgt(hint)===i)?' hn':'')+(i===sel?' sel':'')+(chk&&p===(s.t==='w'?'K':'k')?' chk':'')
@@ -85,13 +125,16 @@ function draw(){lm=lm&&hist.length&&lm.s===s?lm:Chess.legal(s);lm.s=s;const chk=
   d.onclick=()=>click(i);bd.append(d)}
  bar($('pT'),flip?'w':'b');bar($('pB'),flip?'b':'w');
  const mv=$('mv');mv.innerHTML='';hist.forEach((h,n)=>{if(n%2===0){const e=document.createElement('span');e.textContent=(n/2+1)+'. ';mv.append(e)}const e=document.createElement('b');e.textContent=h.san;mv.append(e)});mv.scrollTop=mv.scrollHeight;
- $('undo').disabled=cfg.mode==='cvc'||!hist.length;$('hintb').disabled=$('resign').disabled=!!over||cfg.mode==='cvc'}
+ $('undo').disabled=cfg.mode==='cvc'||cfg.mode==='on'||!hist.length;$('hintb').disabled=!!over||cfg.mode==='cvc'||cfg.mode==='on';$('resign').disabled=!!over||cfg.mode==='cvc'||(cfg.mode==='on'&&!(on&&on.live))}
 setInterval(()=>{if(!cfg||!cfg.tc||over||!hist.length)return;const n=Date.now();clk[s.t]-=n-tick;tick=n;
  if(clk[s.t]<=0){clk[s.t]=0;over='Tempo esgotado! '+NM[s.t==='w'?'b':'w']+' vencem.';tok++;busy=false;draw()}else clocks()},100);
-$('undo').onclick=()=>{if(!hist.length)return;tok++;busy=false;let n=cfg.mode==='cpu'&&s.t===cfg.me&&hist.length>1?2:1;
+$('undo').onclick=()=>{if(!hist.length||cfg.mode==='on')return;tok++;busy=false;let n=cfg.mode==='cpu'&&s.t===cfg.me&&hist.length>1?2:1;
  while(n--&&hist.length){const h=hist.pop();s=h.s;last=h.last;clk=h.clk}sel=-1;hint=null;over='';lm=null;tick=Date.now();draw();ai()};
 $('flip').onclick=()=>{flip=!flip;draw()};
 $('hintb').onclick=()=>{if(over||!human(s.t))return;const my=tok,st=s;think(s,{depth:4,time:1200},m=>{if(my===tok&&st===s&&m){hint=m;draw()}})};
-$('resign').onclick=()=>{if(over||cfg.mode==='cvc')return;const l=cfg.mode==='cpu'?cfg.me:s.t;over=NM[l]+' desistiram. '+NM[l==='w'?'b':'w']+' vencem.';tok++;busy=false;draw()};
-$('new').onclick=newGame;$('mode').onchange=()=>{$('side').disabled=$('mode').value!=='cpu'};newGame();
+$('resign').onclick=()=>{if(over||cfg.mode==='cvc')return;if(cfg.mode==='on'){if(on&&on.live)Conta.rpc('chess_resign',{p_id:on.id}).then(g=>g&&sync(g),e=>Conta.toast(e.message));return}const l=cfg.mode==='cpu'?cfg.me:s.t;over=NM[l]+' desistiram. '+NM[l==='w'?'b':'w']+' vencem.';tok++;busy=false;draw()};
+$('new').onclick=newGame;$('mode').onchange=()=>{const m=$('mode').value;$('side').disabled=m==='2p'||m==='cvc';$('lv').disabled=m==='2p'||m==='on';$('tc').disabled=m==='on';if(m==='on'||(cfg&&cfg.mode==='on'))newGame()};
+{const q=new URLSearchParams(location.search),sala=q.get('sala');if(sala||q.get('online'))$('mode').value='on';$('mode').onchange();if($('mode').value!=='on')newGame();
+ if(sala&&mine()){const go=()=>Conta.rpc('chess_join',{p_code:sala}).then(enter,e=>lobby(e.message));if(Conta.user)go();else Conta.open(go)}
+ if(mine())Conta.onChange(()=>{if(cfg.mode==='on'&&!(on&&on.live))newGame()})}
 </script><script src="fx.js" defer></script></body></html>

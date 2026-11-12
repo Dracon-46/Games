@@ -1,0 +1,86 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Batalha Naval</title><link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css">
+<style>main{max-width:800px}
+.seas{display:flex;flex-wrap:wrap;gap:18px;justify-content:center;width:100%}
+.sea{flex:1 1 280px;max-width:360px;min-width:0}.sea[hidden]{display:none}
+.sea h2{font-size:15px;margin:0 0 6px;text-align:center;color:var(--mut);font-weight:600}.sea.act h2{color:var(--acc)}
+.board{grid-template-columns:repeat(10,1fr);grid-template-rows:repeat(10,1fr);gap:1px;width:100%;background:#1d3a5a;border-color:#27496f;touch-action:manipulation}
+.sea.act .board{border-color:var(--acc2)}
+.board>div{background:#12263d}
+.board>div.s{background:#7c88a8}
+.board>div.pv{background:#3fae86}.board>div.pb{background:#a8475a}
+.board>div.m::after{content:'';width:24%;height:24%;border-radius:50%;background:#8fb4dd;opacity:.85}
+.board>div.h{background:#6d2a3a}.board>div.h::after{content:'';width:46%;height:46%;border-radius:50%;background:var(--bad);box-shadow:0 0 8px var(--bad)}
+.board>div.k{background:linear-gradient(45deg,transparent 44%,var(--bad) 44% 56%,transparent 56%),linear-gradient(-45deg,transparent 44%,var(--bad) 44% 56%,transparent 56%),#3b1826}
+.board>div.last{box-shadow:inset 0 0 0 2px var(--warn)}
+.board>div.cur{outline:2px solid var(--acc2);outline-offset:-2px;z-index:1}
+@media (hover:hover){#bf.live>div:not(.m):not(.h):not(.k):hover{background:#24507d}}
+.fleet{display:flex;flex-wrap:wrap;gap:6px 12px;justify-content:center;margin-top:8px;min-height:12px}
+.shp{display:inline-flex;gap:2px}.shp b{width:10px;height:10px;border-radius:2px;background:#7c88a8}
+.shp.x b{background:var(--bad);opacity:.45}.shp.todo b{background:var(--line)}.shp.nx b{background:var(--warn)}
+button:disabled{opacity:.45;cursor:default;border-color:var(--line)}
+.bar[hidden]{display:none}.msg.good{color:var(--acc)}.msg.bad{color:var(--bad)}</style></head><body data-fx="off">
+<header><a class="back" href="index.html"><i data-ic="voltar"></i><span>Jogos</span></a><h1><i data-ic="naval"></i> Batalha Naval</h1><a class="brand" href="index.html" title="Falkyria Games"><img src="falkyria.svg" alt="Falkyria"></a></header><main>
+<div class="bar"><span class="stat">Seus navios <b id="lm">0</b></span><span class="stat">Navios inimigos <b id="lf">5</b></span><button id="new" class="primary">Novo jogo</button></div>
+<div class="bar" id="pbar"><button id="rot">Girar: horizontal</button><button id="auto">Posicionar automaticamente</button><button id="clr">Limpar</button><button id="go" class="primary" disabled>Começar batalha</button></div>
+<div class="msg" id="msg"></div>
+<div class="seas"><div class="sea" id="sf" hidden><h2>Águas inimigas</h2><div class="board" id="bf"></div><div class="fleet" id="ff"></div></div>
+<div class="sea" id="sm"><h2>Sua frota</h2><div class="board" id="bm"></div><div class="fleet" id="fm"></div></div></div>
+<p class="hint">Posicione seus cinco navios (5, 4, 3, 3 e 2 casas): toque em uma casa para colocar o próximo navio e toque em um navio já colocado para retirá-lo. Depois, você e o computador alternam tiros; vence quem afundar toda a frota adversária. Ponto azul: água. Círculo vermelho: acerto. X: navio afundado. Teclado: setas e Enter; R gira o navio.</p>
+</main><script>
+const $=i=>document.getElementById(i),FLEET=[['Porta-aviões',5],['Encouraçado',4],['Cruzador',3],['Submarino',3],['Destróier',2]],D4=[[0,1],[1,0],[0,-1],[-1,0]];
+const ic=n=>'<i data-ic="'+n+'">'+(window.icon?icon(n):'')+'</i> ',rnd=a=>a[Math.random()*a.length|0];
+let me,foe,phase,horiz,cur,hov,turn,tok=0,lastM,lastF;
+const mk=(id,fn)=>Array.from({length:100},(_,i)=>{const d=document.createElement('div');d.onclick=()=>{cur=-1;fn(i)};$(id).append(d);return d});
+const elM=mk('bm',i=>placeAt(i)),elF=mk('bf',i=>shoot(i));
+elM.forEach((d,i)=>d.onmouseenter=()=>{if(phase==='place'){hov=i;render()}});$('bm').onmouseleave=()=>{if(hov>=0){hov=-1;render()}};
+const side=()=>({ships:FLEET.map(()=>null),grid:Array(100).fill(0),shot:Array(100).fill(0)});
+function cellsFor(i,len,h){let r=i/10|0,c=i%10;if(h)c=Math.min(c,10-len);else r=Math.min(r,10-len);return Array.from({length:len},(_,k)=>(r+(h?0:k))*10+c+(h?k:0))}
+const canPlace=(s,cs)=>cs.every(j=>!s.grid[j]);
+function put(s,k,cs){s.ships[k]={name:FLEET[k][0],len:cs.length,cells:cs,hits:0};cs.forEach(j=>s.grid[j]=k+1)}
+function unput(s,k){s.ships[k].cells.forEach(j=>s.grid[j]=0);s.ships[k]=null}
+function randomFleet(s){s.ships.forEach((x,k)=>x&&unput(s,k));FLEET.forEach((f,k)=>{let cs;do cs=cellsFor(Math.random()*100|0,f[1],Math.random()<.5);while(!canPlace(s,cs));put(s,k,cs)});return s}
+// tiro: 0 inválido, 1 água, 2 acerto, 3 afundou
+function fire(s,i){if(s.shot[i])return 0;const k=s.grid[i];if(!k){s.shot[i]=1;return 1}const sh=s.ships[k-1];sh.hits++;s.shot[i]=2;
+ if(sh.hits===sh.len){sh.cells.forEach(j=>s.shot[j]=3);return 3}return 2}
+const left=s=>s.ships.filter(x=>x&&x.hits<x.len).length;
+// IA: com acertos pendentes, caça as casas vizinhas (preferindo continuar a linha); senão, busca em padrão de paridade
+function aiPick(shot){let best=0,bm=[];
+ shot.forEach((v,h)=>{if(v!==2)return;const r=h/10|0,c=h%10;for(const[dr,dc]of D4){const rr=r+dr,cc=c+dc;if(rr<0||cc<0||rr>9||cc>9||shot[rr*10+cc])continue;
+  const br=r-dr,bc=c-dc,s=br>=0&&bc>=0&&br<10&&bc<10&&shot[br*10+bc]===2?2:1;if(s>best){best=s;bm=[rr*10+cc]}else if(s===best)bm.push(rr*10+cc)}});
+ if(bm.length)return rnd(bm);
+ const un=[],par=[];shot.forEach((v,i)=>{if(!v){un.push(i);if(((i/10|0)+i%10)%2===0)par.push(i)}});return rnd(par.length?par:un)}
+function say(h,cl){$('msg').innerHTML=h;$('msg').className='msg'+(cl?' '+cl:'')}
+const nextShip=()=>me.ships.findIndex(x=>!x);
+function fleetHtml(s,place){const nx=place?nextShip():-1;return FLEET.map((f,k)=>{const x=s.ships[k];
+ return'<span class="shp'+(x&&x.hits===x.len?' x':place&&!x?(k===nx?' nx':' todo'):'')+'" title="'+f[0]+' ('+f[1]+')">'+'<b></b>'.repeat(f[1])+'</span>'}).join('')}
+function render(){const pl=phase==='place',nx=pl?nextShip():-1,at=cur>=0?cur:hov;let pv=[],ok=true;
+ if(pl&&nx>=0&&at>=0&&!me.grid[at]){pv=cellsFor(at,FLEET[nx][1],horiz);ok=canPlace(me,pv)}
+ elM.forEach((d,i)=>{const v=me.shot[i];d.className=(v===3?'k':v===2?'h':v===1?'m':me.grid[i]?'s':'')+(pv.includes(i)?(ok?' pv':' pb'):'')+(i===lastM?' last':'')+(pl&&i===cur?' cur':'')});
+ elF.forEach((d,i)=>{const v=foe.shot[i];d.className=(v===3?'k':v===2?'h':v===1?'m':phase==='over'&&foe.grid[i]?'s':'')+(i===lastF?' last':'')+(!pl&&i===cur?' cur':'')});
+ $('bf').classList.toggle('live',phase==='play'&&turn===0);$('sf').hidden=pl;$('pbar').hidden=!pl;
+ $('sf').classList.toggle('act',phase==='play'&&turn===0);$('sm').classList.toggle('act',pl||(phase==='play'&&turn===1));
+ $('fm').innerHTML=fleetHtml(me,pl);$('ff').innerHTML=fleetHtml(foe);$('lm').textContent=left(me);$('lf').textContent=left(foe);
+ $('go').disabled=nx>=0;$('rot').textContent='Girar: '+(horiz?'horizontal':'vertical');
+ if(pl)say(nx>=0?'Posicione: '+FLEET[nx][0]+' ('+FLEET[nx][1]+' casas)':'Frota pronta. Comece a batalha!')}
+function start(){tok++;me=side();foe=randomFleet(side());phase='place';horiz=true;cur=hov=lastM=lastF=-1;turn=0;render()}
+function placeAt(i){if(phase!=='place')return;const k=me.grid[i];if(k){unput(me,k-1);render();return}
+ const nx=nextShip();if(nx<0)return;const cs=cellsFor(i,FLEET[nx][1],horiz);
+ if(canPlace(me,cs)){put(me,nx,cs);render()}else{render();say('Não cabe aqui: já existe um navio no caminho.','bad')}}
+function begin(){if(phase!=='place'||nextShip()>=0)return;phase='play';turn=0;cur=hov=-1;render();say('Batalha iniciada! Atire nas águas inimigas.')}
+function shoot(i){if(phase!=='play'||turn!==0)return;const r=fire(foe,i);if(!r)return;lastF=i;
+ if(!left(foe)){phase='over';render();say(ic('trofeu')+'Vitória! Você afundou toda a frota inimiga.','good');return}
+ turn=1;render();say((r===1?'Água.':r===2?'Acertou!':'Você afundou o '+foe.ships[foe.grid[i]-1].name+'!')+' Vez do computador…',r>1?'good':'');
+ const k=tok;setTimeout(()=>{if(k===tok)enemy()},700)}
+function enemy(){const i=aiPick(me.shot),r=fire(me,i);lastM=i;
+ if(!left(me)){phase='over';render();say(ic('caveira')+'Derrota: sua frota foi toda afundada.','bad');return}
+ turn=0;render();say((r===1?'O computador errou.':r===2?'O computador acertou seu '+me.ships[me.grid[i]-1].name+'.':'O computador afundou seu '+me.ships[me.grid[i]-1].name+'!')+' Sua vez.',r>1?'bad':'')}
+function rotate(){horiz=!horiz;render()}
+addEventListener('keydown',e=>{const t=e.target.tagName;if(e.ctrlKey||e.metaKey||e.altKey||phase==='over')return;const m={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]}[e.key];
+ if(m){e.preventDefault();cur=cur<0?44:Math.max(0,Math.min(9,(cur/10|0)+m[1]))*10+Math.max(0,Math.min(9,cur%10+m[0]));render()}
+ else if((e.key===' '||e.key==='Enter')&&cur>=0&&t!=='BUTTON'){e.preventDefault();phase==='place'?placeAt(cur):shoot(cur)}
+ else if((e.key==='r'||e.key==='R')&&phase==='place')rotate()});
+$('new').onclick=function(){this.blur();start()};$('rot').onclick=function(){this.blur();rotate()};
+$('auto').onclick=function(){this.blur();randomFleet(me);cur=-1;render()};$('clr').onclick=function(){this.blur();me=side();render()};
+$('go').onclick=function(){this.blur();begin()};start();
+</script><script src="icons.js"></script><script src="config.js"></script><script src="conta.js"></script><script src="fx.js" defer></script></body></html>

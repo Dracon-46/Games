@@ -1,49 +1,214 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Falkyria Games</title>
-<meta name="description" content="Falkyria Games: um fliperama inteiro no navegador. 21 jogos, de xadrez com IA a experimentos em WebGL, sem instalar nada.">
+<meta name="description" content="Falkyria Games: um fliperama inteiro no navegador. 30 jogos, de xadrez com IA a experimentos em WebGL, sem instalar nada.">
 <link rel="icon" href="falkyria.svg"><link rel="stylesheet" href="style.css">
 <style>
-main{max-width:980px;gap:8px}
-.hero{text-align:center;padding:26px 0 10px}.hero img{width:76px;height:76px;filter:drop-shadow(0 0 18px rgba(122,162,255,.45))}
-.hero h1{font-size:clamp(34px,8vw,56px);margin:10px 0 4px;letter-spacing:-.02em;background:linear-gradient(90deg,#fff,#7aa2ff 55%,#6ee7b7);-webkit-background-clip:text;background-clip:text;color:transparent}
-.hero p{color:var(--mut);margin:0;font-size:17px}
-h2{width:100%;font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--mut);margin:26px 0 4px;display:flex;align-items:center;gap:12px}h2::after{content:"";flex:1;height:1px;background:var(--line)}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;width:100%}
-.grid a{display:block;background:rgba(27,31,46,.78);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:16px;padding:18px;text-decoration:none;color:var(--fg);transition:transform .15s,border-color .15s,box-shadow .15s}
-.grid a:hover,.grid a:focus-visible{transform:translateY(-4px);border-color:var(--acc);box-shadow:0 10px 30px rgba(110,231,183,.12)}
-.grid span{font-size:38px;display:block}.grid b{display:block;margin-top:6px}.grid small{color:var(--mut)}
-.fx a{border-color:#3a4470;background:linear-gradient(140deg,rgba(122,162,255,.16),rgba(199,146,234,.10) 60%,rgba(27,31,46,.8))}.fx a:hover{border-color:#c792ea;box-shadow:0 10px 34px rgba(199,146,234,.22)}
-footer{margin-top:34px;color:var(--mut);font-size:14px;text-align:center;display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap}footer img{width:18px;height:18px}footer a{color:var(--fg)}
-</style></head><body><main>
-<div class="hero"><img src="falkyria.svg" alt="Falkyria"><h1>Falkyria Games</h1><p>Um fliperama inteiro no navegador. Escolha e jogue.</p></div>
-<h2>Vitrine gráfica</h2><div class="grid fx">
-<a href="enxame.html"><span>✨</span><b>Enxame</b><small>Milhares de partículas seguem você</small></a>
-<a href="nucleo.html"><span>🔮</span><b>Núcleo</b><small>Defenda a esfera viva</small></a>
-<a href="tunel.html"><span>🌌</span><b>Túnel</b><small>Voe por um túnel neon infinito</small></a>
+:root{--bg:#0c0c0d;--ink:#f2efe8;--mut:#8b887f;--line:#28282b;--amber:#f5b733;--cell:#121214;
+ --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;--mono:ui-monospace,"SF Mono","Cascadia Mono",Consolas,monospace}
+body{background:var(--bg);color:var(--ink);overflow-x:hidden}
+a{color:inherit}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+.lbl{font:500 12px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mut)}
+/* barra superior */
+.top{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:14px;height:56px}
+.top .logo{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:600;white-space:nowrap}
+.top .logo img{width:24px;height:24px}
+.top nav{margin-left:auto;display:flex;gap:22px}
+.top nav a{display:flex;align-items:center;gap:7px;color:var(--mut);text-decoration:none;font-size:14px;padding:4px 0;border-bottom:1px solid transparent;transition:color .2s,border-color .2s}
+.top nav a:hover{color:var(--ink);border-color:var(--amber)}
+/* abertura */
+.hero{overflow:clip;display:grid;grid-template-columns:1.25fr .75fr;gap:40px;align-items:center;padding:74px 0 56px}
+.hero h1{font:400 clamp(46px,8.200vw,104px)/.98 var(--serif);letter-spacing:-.025em;margin:22px 0 24px}
+.hero h1 .ln{display:block;overflow:hidden;padding-bottom:.08em}
+.hero h1 .ln>span{display:inline-block;transform:translateY(105%)}
+.on .ln>span,.hero h1.on .ln>span{transform:none;transition:transform .9s cubic-bezier(.16,1,.3,1);transition-delay:calc(var(--l)*110ms)}
+.hero h1 em{font-style:italic}
+.dot{display:inline-block;width:.13em;height:.13em;border-radius:50%;background:var(--amber);margin-left:.06em}
+.hero p{color:var(--mut);font-size:clamp(16px,1.900vw,19px);max-width:500px;margin:0 0 30px}
+.cta{display:flex;flex-wrap:wrap;gap:22px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:10px;font-weight:600;font-size:15.500px;text-decoration:none;cursor:pointer}
+.btn.go{background:var(--ink);color:var(--bg);padding:14px 22px;border-radius:4px;transition:background .2s}
+.btn.go:hover{background:var(--amber)}
+.btn.tx{border-bottom:1px solid var(--line);padding:6px 0;transition:border-color .2s}
+.btn.tx:hover{border-color:var(--amber)}.btn.tx i{transition:transform .25s}.btn.tx:hover i{transform:translateX(4px)}
+.stats{display:grid;grid-template-columns:repeat(4,auto);justify-content:start;margin-top:46px;border-top:1px solid var(--line)}
+.stats div{padding:16px 34px 0 0;margin-right:34px;border-right:1px solid var(--line)}.stats div:last-child{border:0;margin:0}
+.stats b{display:block;font:400 40px/1 var(--serif);font-variant-numeric:tabular-nums}.stats small{display:block;margin-top:8px}
+/* órbita de ícones */
+.orb{position:relative;aspect-ratio:1;width:min(100%,380px);margin:0 auto}
+.orb .core{position:absolute;inset:34%;display:grid;place-items:center}
+.orb .core img{width:100%;height:100%}
+.ring{position:absolute;border:1px solid var(--line);border-radius:50%;animation:spin linear infinite}
+.ring.r1{inset:16%;animation-duration:30s}.ring.r2{inset:0;animation-duration:52s;animation-direction:reverse}
+.ring a{position:absolute;width:42px;height:42px;margin:-21px;display:grid;place-items:center;font-size:20px;background:var(--bg);border:1px solid var(--line);border-radius:4px;text-decoration:none;color:var(--mut);transition:color .2s,border-color .2s}
+.ring a:hover{color:var(--amber);border-color:var(--amber)}
+.ring a>i{animation:spin linear infinite reverse}
+.ring.r1 a>i{animation-duration:30s}.ring.r2 a>i{animation-duration:52s;animation-direction:normal}
+/* seções */
+.sec{display:flex;align-items:baseline;gap:16px;margin:70px 0 0;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.sec h2{font:400 clamp(28px,4vw,40px)/1 var(--serif);margin:0;letter-spacing:-.01em}
+.sec .lbl{margin-left:auto}
+/* destaques */
+.feat{display:grid;grid-template-columns:1.300fr 1fr 1fr;border-bottom:1px solid var(--line)}
+.feat a{position:relative;overflow:hidden;min-height:250px;padding:26px 26px 24px;display:flex;flex-direction:column;text-decoration:none;border-right:1px solid var(--line);transition:background .25s,color .25s}
+.feat a:last-child{border-right:0}
+.feat a:hover{background:var(--amber);color:#0c0c0d}
+.feat a:hover .lbl,.feat a:hover small{color:#0c0c0d}
+.feat .big{position:absolute;right:-18px;bottom:-26px;font-size:190px;color:var(--line);transition:color .25s,transform .6s cubic-bezier(.16,1,.3,1)}
+.feat .big .ic{stroke-width:1}
+.feat a:hover .big{color:rgba(12,12,13,.22);transform:rotate(-10deg)}
+.feat a>*{position:relative}
+.feat b{font:400 clamp(34px,4.200vw,52px)/1 var(--serif);margin:auto 0 10px;padding-top:40px}
+.feat small{color:var(--mut);font-size:14.500px;max-width:300px}
+.feat .play{margin-top:18px;display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:14px}
+.feat .play i{transition:transform .25s}.feat a:hover .play i{transform:translateX(5px)}
+/* abas */
+.tools{position:sticky;top:56px;z-index:15;display:flex;flex-wrap:wrap;gap:8px 24px;align-items:flex-end;background:var(--bg);border-bottom:1px solid var(--line);margin-top:6px}
+.tabs{position:relative;display:flex;gap:26px;overflow-x:auto;scrollbar-width:none;max-width:100%}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{display:flex;align-items:baseline;gap:6px;border:0;border-radius:0;background:none;color:var(--mut);padding:16px 0 14px;white-space:nowrap;font-size:15.500px;transition:color .2s}
+.tabs button:hover,.tabs button[aria-selected=true]{color:var(--ink)}
+.tabs button span{font:500 11px var(--mono);color:var(--mut)}
+.tabs .ink{position:absolute;left:0;bottom:0;height:2px;width:0;background:var(--amber);transition:transform .4s cubic-bezier(.16,1,.3,1),width .4s cubic-bezier(.16,1,.3,1)}
+.find{margin-left:auto;display:flex;align-items:center;gap:8px;color:var(--mut);padding:10px 0;flex:0 1 220px}
+.find input{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--ink);font:inherit}
+.find:focus-within{color:var(--ink)}
+/* grade */
+.grid{display:grid;grid-template-columns:repeat(4,1fr);min-height:240px;border-left:1px solid var(--line)}
+.card{position:relative;display:flex;flex-direction:column;min-height:176px;padding:18px 18px 16px;text-decoration:none;border-right:1px solid var(--line);border-bottom:1px solid var(--line);transition:background .2s}
+.card:hover,.card:focus-visible{background:var(--cell);outline:0}
+.card .r1{display:flex;justify-content:space-between;align-items:flex-start}
+.card .ico{font-size:28px;color:var(--ink);transition:color .2s,transform .35s cubic-bezier(.16,1,.3,1)}
+.card:hover .ico{color:var(--amber);transform:translateY(-3px)}
+.card .n{font:500 11px var(--mono);color:var(--mut)}
+.card b{font:400 23px/1.100 var(--serif);margin-top:auto;padding-top:22px}
+.card small{color:var(--mut);font-size:13.500px;line-height:1.350;margin-top:5px}
+.card .tags{font:500 10.500px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin-top:12px}
+.card .go{position:absolute;right:16px;bottom:14px;color:var(--amber);opacity:0;transform:translateX(-6px);transition:opacity .2s,transform .25s}
+.card:hover .go{opacity:1;transform:none}
+.card.in{animation:rise .55s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(var(--i)*32ms)}
+.none{grid-column:1/-1;color:var(--mut);padding:60px 18px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);margin:0}
+/* como foi feito */
+.how{display:grid;grid-template-columns:repeat(4,1fr);gap:0 28px}
+.how div{padding:22px 0}.how b{display:block;font:400 22px/1.150 var(--serif);margin:12px 0 8px}.how p{margin:0;color:var(--mut);font-size:14.500px}
+footer{margin:70px 0 34px;padding-top:20px;border-top:1px solid var(--line);color:var(--mut);font-size:13.500px;display:flex;gap:8px 20px;align-items:center;flex-wrap:wrap}
+footer img{width:16px;height:16px}footer a:hover{color:var(--ink)}footer .sp{margin-left:auto}
+/* entrada */
+.rv{opacity:0;transform:translateY(18px)}
+.rv.on{opacity:1;transform:none;transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1);transition-delay:calc(var(--d,0)*90ms)}
+h1.rv{opacity:1;transform:none}
+.sec.rv{opacity:1;transform:none;border-bottom-color:transparent;background:linear-gradient(var(--line),var(--line)) left bottom/0 1px no-repeat}
+.sec.rv.on{background-size:100% 1px;transition:background-size 1.100s cubic-bezier(.16,1,.3,1)}
+.orb.rv{transform:scale(.86) rotate(-12deg)}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (max-width:980px){.grid{grid-template-columns:repeat(3,1fr)}.how{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:760px){.hero{grid-template-columns:1fr;padding:40px 0 34px;gap:26px}.orb{width:min(62vw,250px);order:-1;margin:0}.ring a{width:34px;height:34px;margin:-17px;font-size:16px}
+ .stats{grid-template-columns:repeat(2,1fr)}.stats div{margin:0;padding:16px 0 14px;border-right:0}.feat{grid-template-columns:1fr}.feat a{min-height:190px;border-right:0;border-bottom:1px solid var(--line)}.feat a:last-child{border-bottom:0}
+ .grid{grid-template-columns:repeat(2,1fr)}.card{min-height:158px;padding:14px}.card b{font-size:20px}.find{flex:1 1 100%;margin-left:0;border-top:1px solid var(--line)}.top nav a span{display:none}.top nav{gap:16px}.top nav .hm{display:none}.sec{margin-top:52px}footer .sp{margin-left:0}}
+@media (max-width:400px){.how{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.rv,.hero h1 .ln>span{opacity:1;transform:none}.sec.rv{background-size:100% 1px}}
+</style></head><body data-fx="off">
+<div class="top"><div class="wrap"><a class="logo" href="index.html"><img src="falkyria.svg" alt="">Falkyria Games</a>
+<nav><a href="ranking.html"><i data-ic="trofeu"></i><span>Ranking</span></a><a class="hm" href="https://dracon-46.github.io/Portifolio/"><span>Falkyria</span></a><a href="https://github.com/Dracon-46/Games"><i data-ic="github"></i><span>Código</span></a></nav></div></div>
+
+<div class="wrap">
+<section class="hero">
+ <div>
+  <div class="lbl rv">Falkyria Games — fliperama de navegador</div>
+  <h1 class="rv"><span class="ln" style="--l:0"><span>Um fliperama</span></span><span class="ln" style="--l:1"><span>inteiro <em>no</em></span></span><span class="ln" style="--l:2"><span><em>navegador</em><i class="dot"></i></span></span></h1>
+  <p class="rv" style="--d:3">Xadrez com IA, clássicos de tabuleiro, arcade e experimentos gráficos na GPU. Sem instalar nada, sem cadastro: é abrir e jogar.</p>
+  <div class="cta rv" style="--d:4"><a class="btn go" id="rand" href="#"><i data-ic="jogar"></i>Jogar um aleatório</a><a class="btn tx" href="#jogos">Ver todos os jogos <i data-ic="seta"></i></a></div>
+  <div class="stats rv" style="--d:5"><div><b data-n="0" id="nGames">0</b><small class="lbl">jogos</small></div><div><b data-n="12">0</b><small class="lbl">com IA</small></div><div><b data-n="3">0</b><small class="lbl">em WebGL</small></div><div><b data-n="0">0</b><small class="lbl">dependências</small></div></div>
+ </div>
+ <div class="orb rv" style="--d:2" aria-hidden="true"><div class="ring r2" id="r2"></div><div class="ring r1" id="r1"></div><div class="core"><img src="falkyria.svg" alt=""></div></div>
+</section>
+
+<div class="sec rv"><h2>Destaques</h2><span class="lbl">03 escolhidos</span></div>
+<div class="feat" id="feat"></div>
+
+<div class="sec rv" id="jogos"><h2>Todos os jogos</h2><span class="lbl" id="cnt"></span></div>
+<div class="tools"><div class="tabs" id="tabs" role="tablist"><div class="ink"></div></div>
+<label class="find"><i data-ic="busca"></i><input id="q" type="search" placeholder="Buscar jogo" aria-label="Buscar jogo"></label></div>
+<div class="grid" id="grid" role="tabpanel"></div>
+
+<div class="sec rv"><h2>Como foi feito</h2><span class="lbl">sem atalhos</span></div>
+<div class="how">
+<div class="rv"><span class="lbl">01</span><b>Tudo escrito à mão</b><p>HTML, CSS e JavaScript puros. Nenhum framework, nenhuma engine, nenhuma etapa de build.</p></div>
+<div class="rv" style="--d:1"><span class="lbl">02</span><b>Motores próprios</b><p>Xadrez e damas com regras validadas por testes automáticos e IA rodando em segundo plano.</p></div>
+<div class="rv" style="--d:2"><span class="lbl">03</span><b>Gráficos na GPU</b><p>Shaders GLSL próprios movem os jogos da vitrine, com dezenas de milhares de partículas.</p></div>
+<div class="rv" style="--d:3"><span class="lbl">04</span><b>Em qualquer tela</b><p>Mouse, teclado e toque. Funciona no computador e no celular.</p></div>
 </div>
-<h2>Tabuleiro e estratégia</h2><div class="grid">
-<a href="xadrez.html"><span>♞</span><b>Xadrez</b><small>IA, 2 jogadores, variantes e relógio</small></a>
-<a href="damas.html"><span>⛀</span><b>Damas</b><small>Regras brasileiras, contra o computador</small></a>
-<a href="reversi.html"><span>⚫</span><b>Reversi</b><small>Vire as peças do adversário</small></a>
-<a href="velha.html"><span>⭕</span><b>Jogo da Velha</b><small>Tente vencer a máquina</small></a>
+<footer><img src="falkyria.svg" alt=""><span>Um produto <a href="https://dracon-46.github.io/Portifolio/">Falkyria</a></span><a href="https://github.com/Dracon-46/Games">Código aberto no GitHub</a><span class="sp">Licença MIT</span></footer>
 </div>
-<h2>Arcade</h2><div class="grid">
-<a href="cobrinha.html"><span>🐍</span><b>Cobrinha</b><small>Coma, cresça, não bata</small></a>
-<a href="blocos.html"><span>🧱</span><b>Blocos</b><small>Encaixe peças e limpe linhas</small></a>
-<a href="orbita.html"><span>🪐</span><b>Órbita</b><small>Troque de anel e colete cristais</small></a>
-<a href="desvio.html"><span>🚀</span><b>Desvio</b><small>Sobreviva à chuva de meteoros</small></a>
-<a href="palavras.html"><span>🌧️</span><b>Chuva de Palavras</b><small>Digite antes que caiam</small></a>
-</div>
-<h2>Quebra-cabeça e raciocínio</h2><div class="grid">
-<a href="sudoku.html"><span>🔢</span><b>Sudoku</b><small>Três níveis de dificuldade</small></a>
-<a href="campo-minado.html"><span>💣</span><b>Campo Minado</b><small>Cuidado onde clica</small></a>
-<a href="tubos.html"><span>🔧</span><b>Tubos</b><small>Gire as peças e ligue tudo</small></a>
-<a href="labirinto.html"><span>🌀</span><b>Labirinto</b><small>Ache a saída o mais rápido que puder</small></a>
-<a href="hanoi.html"><span>🗼</span><b>Torre de Hanói</b><small>Mova a pilha, disco a disco</small></a>
-<a href="codigo.html"><span>🔐</span><b>Código Secreto</b><small>Deduza as 4 cores em 10 tentativas</small></a>
-<a href="memoria.html"><span>🃏</span><b>Memória</b><small>Ache os pares</small></a>
-<a href="forca.html"><span>🔤</span><b>Forca</b><small>Adivinhe a palavra</small></a>
-<a href="jokempo.html"><span>✊</span><b>Jokempô</b><small>Pedra, papel, tesoura</small></a>
-</div>
-<footer><img src="falkyria.svg" alt=""> Um produto <a href="https://dracon-46.github.io/Portifolio/">Falkyria</a> · <a href="https://github.com/Dracon-46/Games">código aberto no GitHub</a></footer>
-</main><script src="fx.js" defer></script></body></html>
+
+<script src="icons.js"></script><script src="config.js"></script><script src="conta.js"></script><script>
+// f: arquivo/ícone · c: categoria · t: etiquetas
+const CATS={todos:['Todos'],vitrine:['Vitrine gráfica'],tabuleiro:['Tabuleiro'],arcade:['Arcade'],puzzle:['Quebra-cabeça']};
+const G=[
+['enxame','Enxame','Milhares de partículas seguem você','vitrine',['WebGL','Partículas']],
+['nucleo','Núcleo','Defenda a esfera viva com um escudo','vitrine',['WebGL','3D']],
+['tunel','Túnel','Voe por um túnel neon infinito','vitrine',['WebGL','Velocidade']],
+['xadrez','Xadrez','IA, 2 jogadores, variantes e relógio','tabuleiro',['IA','2 jogadores']],
+['damas','Damas','Regras brasileiras, contra o computador','tabuleiro',['IA']],
+['reversi','Reversi','Vire as peças do adversário','tabuleiro',['IA','2 jogadores']],
+['quatro','Quatro em Linha','Alinhe quatro discos antes da máquina','tabuleiro',['IA','2 jogadores']],
+['gomoku','Gomoku','Cinco pedras em linha vencem','tabuleiro',['IA','2 jogadores']],
+['naval','Batalha Naval','Afunde a frota inimiga','tabuleiro',['IA']],
+['mancala','Mancala','Semeie e capture as sementes','tabuleiro',['IA','2 jogadores']],
+['pontinhos','Pontinhos','Feche mais quadrados que o rival','tabuleiro',['IA','2 jogadores']],
+['velha','Jogo da Velha','Tente vencer a máquina','tabuleiro',['IA','2 jogadores']],
+['cobrinha','Cobrinha','Coma, cresça, não bata','arcade',['Clássico']],
+['blocos','Blocos','Encaixe peças e limpe linhas','arcade',['Clássico']],
+['tijolos','Quebra-Tijolos','Rebata a bola e limpe as fases','arcade',['Fases']],
+['pingue','Pingue-Pongue','Tênis de mesa contra o computador','arcade',['IA','2 jogadores']],
+['orbita','Órbita','Troque de anel e colete cristais','arcade',['Original']],
+['desvio','Desvio','Sobreviva à chuva de meteoros','arcade',['Original']],
+['palavras','Chuva de Palavras','Digite antes que caiam','arcade',['Digitação']],
+['sudoku','Sudoku','Três níveis, solução única','puzzle',['Lógica']],
+['campo-minado','Campo Minado','Cuidado onde clica','puzzle',['Lógica'],'minas'],
+['quinze','Quinze','Deslize as peças até ordenar','puzzle',['Lógica']],
+['tubos','Tubos','Gire as peças e ligue tudo','puzzle',['Lógica']],
+['labirinto','Labirinto','Ache a saída o mais rápido que puder','puzzle',['Tempo']],
+['hanoi','Torre de Hanói','Mova a pilha, disco a disco','puzzle',['Lógica']],
+['codigo','Código Secreto','Deduza as 4 cores em 10 tentativas','puzzle',['Dedução']],
+['sequencia','Sequência','Repita a sequência que cresce','puzzle',['Memória']],
+['memoria','Memória','Ache os pares','puzzle',['Memória']],
+['forca','Forca','Adivinhe a palavra','puzzle',['Palavras']],
+['jokempo','Jokempô','Pedra, papel, tesoura','puzzle',['Sorte']]
+].map(g=>({f:g[0],n:g[1],d:g[2],c:g[3],t:g[4],ic:g[5]||g[0]}));
+const $=i=>document.getElementById(i),norm=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+let tab='todos';
+
+// órbitas de ícones na abertura
+[['r1',['xadrez','enxame','cobrinha','sudoku','naval']],['r2',['nucleo','damas','tijolos','labirinto','tunel','quatro','hanoi']]].forEach(([id,list])=>{
+ $(id).innerHTML=list.map((f,k)=>{const a=k/list.length*Math.PI*2,g=G.find(x=>x.f===f);return`<a href="${f}.html" tabindex="-1" title="${g.n}" style="left:${(50+50*Math.sin(a)).toFixed(2)}%;top:${(50-50*Math.cos(a)).toFixed(2)}%"><i data-ic="${g.ic}"></i></a>`}).join('')});
+
+// destaques
+$('feat').innerHTML=[['xadrez','Motor próprio','Cinco níveis de IA, Chess960, Rei da Colina, Três Xeques e relógio de torneio.'],['enxame','Vitrine WebGL','Até 42 mil partículas na GPU seguindo o cursor.'],['nucleo','Vitrine WebGL','Uma esfera 3D viva para defender.']]
+ .map(([f,k,txt],i)=>{const g=G.find(x=>x.f===f);return`<a class="rv" href="${f}.html" style="--d:${i}"><i class="big" data-ic="${g.ic}"></i><span class="lbl">0${i+1} — ${k}</span><b>${g.n}</b><small>${txt}</small><span class="play">Jogar agora <i data-ic="seta"></i></span></a>`}).join('');
+
+// abas
+const tabs=$('tabs'),ink=tabs.querySelector('.ink');
+Object.entries(CATS).forEach(([k,[n]])=>{const b=document.createElement('button');b.type='button';b.role='tab';b.dataset.k=k;
+ b.innerHTML=`${n}<span>${String(k==='todos'?G.length:G.filter(g=>g.c===k).length).padStart(2,'0')}</span>`;b.onclick=()=>pick(k,true);tabs.append(b)});
+function moveInk(){const b=tabs.querySelector('[aria-selected=true]');if(b){ink.style.width=b.offsetWidth+'px';ink.style.transform='translateX('+b.offsetLeft+'px)'}}
+function pick(k,user){if(!CATS[k])k='todos';tab=k;tabs.querySelectorAll('button').forEach(b=>b.setAttribute('aria-selected',b.dataset.k===k));moveInk();render();
+ if(user){try{history.replaceState(null,'',k==='todos'?location.pathname:'#'+k)}catch(e){}const b=tabs.querySelector('[aria-selected=true]');b&&b.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'})}}
+function render(){const q=norm($('q').value.trim()),list=G.filter(g=>(tab==='todos'||g.c===tab)&&(!q||norm(g.n+' '+g.d+' '+g.t.join(' ')+' '+CATS[g.c][0]).includes(q)));
+ $('cnt').textContent=String(list.length).padStart(2,'0')+(list.length===1?' jogo':' jogos');
+ $('grid').innerHTML=list.length?list.map((g,i)=>`<a class="card in" href="${g.f}.html" style="--i:${Math.min(i,16)}"><span class="r1"><i class="ico" data-ic="${g.ic}"></i><span class="n">${String(G.indexOf(g)+1).padStart(2,'0')}</span></span><b>${g.n}</b><small>${g.d}</small><span class="tags">${CATS[g.c][0]} / ${g.t.join(' / ')}</span><i class="go" data-ic="seta"></i></a>`).join(''):'<p class="none">Nenhum jogo encontrado.</p>';
+ fillIcons($('grid'))}
+$('q').oninput=render;
+$('rand').onclick=e=>{e.preventDefault();location.href=G[Math.random()*G.length|0].f+'.html'};
+addEventListener('resize',moveInk);addEventListener('hashchange',()=>pick(location.hash.slice(1)));
+
+// entrada: revela ao rolar e conta os números
+$('nGames').dataset.n=G.length;fillIcons();pick(location.hash.slice(1)||'todos');
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(moveInk);
+const still=matchMedia('(prefers-reduced-motion:reduce)').matches;
+function count(el){const n=+el.dataset.n;if(still||!n){el.textContent=n;return}const t0=performance.now();(function f(t){const p=Math.min(1,(t-t0)/1100);el.textContent=Math.round(n*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(f)})(t0)}
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('on');e.target.querySelectorAll('[data-n]').forEach(count);io.unobserve(e.target)}}),{threshold:.12});
+document.querySelectorAll('.rv').forEach(e=>io.observe(e));
+</script><script src="fx.js" defer></script></body></html>
