@@ -25,4 +25,5 @@ Site estático de jogos para navegador. Leia `docs/arquitetura.md` antes de mexe
 - Catálogo de jogos: vetor `G` em `JavaScript/index.html` (fonte única; testes e home leem de lá).
 - Passo a passo de jogo novo: `docs/novo-jogo.md`.
 - Camada online: `supabase/schema.sql`, `JavaScript/conta.js`, `docs/online.md`.
+- Manutenção do banco: `.github/workflows/manter-banco.yml` + `scripts/manter-banco.js` (inserção a cada 6 dias para o Supabase gratuito não pausar).
 - Publicação: Vercel, projeto `jogos-navegador`, pasta raiz `JavaScript`, a partir da `main` (`docs/publicacao.md`).

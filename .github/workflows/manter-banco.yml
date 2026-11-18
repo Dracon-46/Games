@@ -1,0 +1,30 @@
+name: Manter o banco ativo
+
+# O Supabase pausa projetos gratuitos depois de 7 dias sem uso. Esta rotina faz uma
+# inserção no banco a cada 6 dias (dias 1, 7, 13, 19, 25 e 31 de cada mês; o maior
+# intervalo possível é de 6 dias). Também pode ser disparada à mão na aba Actions.
+on:
+  schedule:
+    - cron: "37 11 */6 * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  ping:
+    name: Inserção no banco
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/manter-banco.js
+      # O GitHub desliga rotinas agendadas de repositórios sem atividade há 60 dias.
+      # Reativar a própria rotina a cada execução evita que isso aconteça.
+      - name: Manter a rotina ligada
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/manter-banco.yml/enable"

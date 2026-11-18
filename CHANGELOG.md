@@ -2,6 +2,15 @@
 
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). As versões são as do `package.json`.
 
+## [2.3.0] - 2026-11-18
+
+### Adicionado
+- Rotina `Manter o banco ativo` (GitHub Actions): a cada 6 dias faz uma inserção no Supabase pela função `heartbeat()`, para o projeto gratuito não ser pausado por inatividade; reativa a si mesma para o GitHub não desligá-la.
+- `npm run manter-banco` para rodar a mesma inserção à mão.
+
+### Corrigido
+- O projeto Supabase tinha sido pausado por inatividade e foi reativado.
+
 ## [2.2.0] - 2026-11-12
 
 ### Adicionado

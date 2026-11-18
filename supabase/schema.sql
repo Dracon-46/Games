@@ -293,10 +293,32 @@ begin
   delete from auth.users where id = uid;  -- perfil e pontuações saem em cascata
 end $$;
 
+-- ---------------------------------------------------------------- manter o projeto ativo
+-- No plano gratuito o Supabase pausa o projeto depois de 7 dias sem uso. A rotina
+-- .github/workflows/manter-banco.yml chama heartbeat() a cada 6 dias: uma inserção por vez,
+-- no máximo uma por hora (chamadas repetidas não gravam nada) e só os últimos 90 dias ficam guardados.
+create table public.heartbeat (
+  id bigint generated always as identity primary key,
+  beat_at timestamptz not null default now()
+);
+alter table public.heartbeat enable row level security;  -- sem políticas: acesso só pela função
+
+create function public.heartbeat() returns timestamptz
+language plpgsql security definer set search_path = '' as $$
+declare ultimo timestamptz;
+begin
+  select max(beat_at) into ultimo from public.heartbeat;
+  if ultimo is null or ultimo < now() - interval '1 hour' then
+    insert into public.heartbeat default values returning beat_at into ultimo;
+    delete from public.heartbeat where beat_at < now() - interval '90 days';
+  end if;
+  return ultimo;
+end $$;
+
 -- ---------------------------------------------------------------- permissões
 -- O Supabase concede EXECUTE em toda função nova a anon e authenticated; aqui só fica o que é público de fato.
 revoke execute on all functions in schema public from public, anon, authenticated;
-grant execute on function public.username_available(text), public.top_scores(text, int),
+grant execute on function public.username_available(text), public.top_scores(text, int), public.heartbeat(),
   public.overall_ranking(int), public.chess_ranking(int) to anon, authenticated;
 grant execute on function public.submit_score(text, int), public.chess_create(jsonb, text),
   public.chess_join(text), public.chess_move(uuid, int, jsonb, jsonb, text, text),

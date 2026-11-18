@@ -46,8 +46,10 @@ Variáveis aceitas:
 |---|---|
 | `unit/motores.test.js` | *Perft* do xadrez (clássico e Chess960), mate em 1, material insuficiente, variantes; captura obrigatória e lei da maioria nas damas. |
 | `unit/site.test.js` | O catálogo da home bate com as páginas; cada página segue o esqueleto; todo ícone e arquivo referenciado existe; nenhum emoji; sintaxe de todos os scripts; jogos do ranking iguais no banco, nas páginas e em `ranking.html`. |
+| `unit/manutencao.test.js` | A rotina de manutenção do banco: agenda que nunca passa de 6 dias entre execuções, script executado e função liberada no banco. |
 | `unit/docs.test.js` | README, `docs/jogos.md` e CHANGELOG citam todos os jogos e o total certo; os links entre documentos existem. |
-| `db/regras.test.js` | As regras do banco, incluindo tentativas de burlar permissões. |
+| `db/regras.test.js` | As regras do banco, incluindo tentativas de burlar permissões e o limite de uma inserção por hora do `heartbeat()`. |
+| `db/manter-banco.test.js` | `scripts/manter-banco.js` lê a configuração, faz a inserção pela API sem login, não duplica na mesma hora e tenta de novo quando o banco não responde. |
 | `e2e/paginas.test.js` | Cada página carrega sem erro de script, de console ou de rede, sem rolagem lateral, com cabeçalho, ícones, botão de conta e fundo animado, em 1100 px e 375 px. |
 | `e2e/home.test.js` | Catálogo, abas, endereço com a aba, busca, destaques, botão aleatório, layout da abertura, animações de entrada. |
 | `e2e/jogos.test.js` | Um teste dedicado para os jogos com mais regra (xadrez em vários cenários, damas, velha, cobrinha, blocos, duelo, os três de WebGL, palpite, sudoku, campo minado, memória, forca, jokempô) e um teste de reação a cliques e teclas para cada um dos demais. |

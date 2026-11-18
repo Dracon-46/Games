@@ -23,6 +23,7 @@ JavaScript/         o site
   damas-engine.js   motor de damas
   palavras5.js      palavras do jogo Palpite
 supabase/schema.sql banco da camada online
+scripts/            manutenção (manter-banco.js: impede a pausa do Supabase)
 tests/              testes de unidade, de navegador e de banco
 docs/               esta documentação
 ```
