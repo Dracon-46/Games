@@ -118,3 +118,17 @@ test('LGPD: excluir a conta apaga usuário, perfil e pontuações, e encerra as 
   pg.as(B, 'select delete_account()');
   assert.strictEqual(pg.admin(`select count(*) from chess_games where id = '${espera.id}'`), '0', 'a sala de espera de quem saiu é apagada');
 });
+
+test('heartbeat: qualquer um chama, grava no máximo uma vez por hora e guarda só 90 dias', { skip }, () => {
+  pg.admin('delete from heartbeat');
+  pg.admin(`insert into heartbeat (beat_at) values (now() - interval '120 days'), (now() - interval '2 hours')`);
+  const primeira = pg.as(null, 'select heartbeat()');
+  assert.strictEqual(pg.admin('select count(*) from heartbeat'), '2', 'grava uma linha e apaga a de mais de 90 dias');
+  assert.strictEqual(pg.as(null, 'select heartbeat()'), primeira, 'na mesma hora não grava de novo');
+  assert.strictEqual(pg.as(C, 'select heartbeat()'), primeira, 'logado também não força nova linha');
+  assert.strictEqual(pg.admin('select count(*) from heartbeat'), '2');
+  assert.strictEqual(pg.as(null, 'select count(*) from heartbeat'), '0', 'a tabela não é legível de fora');
+  assert.match(pg.fails(null, `insert into heartbeat default values`) || 'row-level security', /permission denied|row-level security/);
+  assert.match(pg.fails(null, 'delete from heartbeat') || 'row-level security', /permission denied|row-level security/);
+  assert.strictEqual(pg.admin('select count(*) from heartbeat'), '2');
+});

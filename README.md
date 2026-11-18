@@ -93,7 +93,7 @@ Para ativar num projeto Supabase:
 1. Rode `supabase/schema.sql` no SQL Editor do projeto.
 2. Preencha `JavaScript/config.js` com a URL do projeto e a chave publicável.
 
-Enquanto `config.js` estiver vazio, o site funciona normalmente, só sem a parte online. Toda escrita no banco passa por funções que conferem quem está logado, de quem é a vez e a ordem dos lances. A legalidade de cada lance de xadrez e as pontuações são conferidas no navegador de quem joga, então o ranking não é à prova de trapaça.
+Enquanto `config.js` estiver vazio, o site funciona normalmente, só sem a parte online. Uma rotina do GitHub Actions faz uma inserção no banco a cada 6 dias, para o Supabase não pausar o projeto por inatividade. Toda escrita no banco passa por funções que conferem quem está logado, de quem é a vez e a ordem dos lances. A legalidade de cada lance de xadrez e as pontuações são conferidas no navegador de quem joga, então o ranking não é à prova de trapaça.
 
 ## Rodando localmente
 
@@ -134,6 +134,7 @@ Tudo em [`docs/`](docs/README.md): [arquitetura](docs/arquitetura.md), [catálog
 ```text
 JavaScript/        o site: uma página por jogo, estilos, ícones e motores
 supabase/          esquema do banco para contas, ranking e xadrez online
+scripts/           rotina que mantém o banco ativo
 tests/             testes de unidade, de banco e de navegador
 docs/              documentação
 .github/           integração contínua e modelo de pull request

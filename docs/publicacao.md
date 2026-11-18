@@ -18,6 +18,13 @@ O site está em **https://jogos-navegador.vercel.app**, no projeto `jogos-navega
 
 Não existe etapa de build: o que está em `JavaScript/` é servido como está. O `index.html` da raiz do repositório só redireciona para `JavaScript/`, para quem abrir o repositório pelo GitHub Pages.
 
+## Rotinas automáticas
+
+| Rotina | Quando | O que faz |
+|---|---|---|
+| `.github/workflows/testes.yml` | a cada push e pull request | Roda a suíte inteira. |
+| `.github/workflows/manter-banco.yml` | a cada 6 dias, ou à mão | Faz uma inserção no Supabase para o projeto não ser pausado. Veja [online.md](online.md#manter-o-projeto-ativo). |
+
 ## Depois de publicar
 
 - Abra a home e um jogo de cada categoria.

@@ -37,6 +37,7 @@ A sessão fica no `localStorage` (`fk-sessao`) e é renovada sozinha quando o to
 | `games` | jogos que têm ranking e o teto de pontuação aceito | pública | só por migração |
 | `scores` | melhor pontuação de cada jogador em cada jogo | pública | só por `submit_score` |
 | `chess_games` | partidas de xadrez online | só pelas funções | só pelas funções |
+| `heartbeat` | data de cada inserção da rotina de manutenção (últimos 90 dias) | ninguém | só por `heartbeat()` |
 
 O perfil nasce junto com o usuário: o nome e a versão dos termos aceita vêm nos metadados do cadastro, e o gatilho `on_auth_user_created` recusa o cadastro sem nome válido (3 a 16 letras, números ou `_`) ou sem o aceite.
 
@@ -56,9 +57,22 @@ O perfil nasce junto com o usuário: o nome e a versão dos termos aceita vêm n
 | `chess_get(id)` | logado | Estado atual da partida. |
 | `chess_lobby()` | logado | Salas abertas e partidas em andamento de quem chama. |
 | `my_data()` | logado | Tudo o que o site guarda sobre quem chama (acesso e portabilidade, LGPD art. 18). |
+| `heartbeat()` | qualquer um | Faz uma inserção na tabela `heartbeat` (no máximo uma por hora) para o projeto não ser pausado. |
 | `delete_account()` | logado | Elimina a conta: usuário, perfil e pontuações; partidas em andamento contam como desistência. |
 
 `_chess_view` e `_chess_finish` são internas e não podem ser chamadas de fora.
+
+## Manter o projeto ativo
+
+No plano gratuito, o Supabase **pausa o projeto depois de 7 dias sem uso** e o site perde a camada online até alguém reativá-lo no painel. Para evitar isso:
+
+- `.github/workflows/manter-banco.yml` roda nos dias 1, 7, 13, 19, 25 e 31 de cada mês, às 11h37 (UTC). O maior intervalo possível entre duas execuções é de 6 dias.
+- A rotina executa `scripts/manter-banco.js`, que chama `heartbeat()` com a chave publicável de `JavaScript/config.js` e faz **uma inserção** na tabela `heartbeat`. Se o banco demorar a responder, o script tenta de novo até 4 vezes.
+- `heartbeat()` grava no máximo uma linha por hora, mesmo que seja chamada muitas vezes, e apaga as linhas com mais de 90 dias. Por isso pode ficar liberada para a chave pública sem risco de encher o banco.
+- O GitHub desliga rotinas agendadas de repositórios sem atividade há 60 dias; a última etapa da rotina reativa a si mesma para isso não acontecer.
+- Para rodar na hora: aba **Actions** do repositório → **Manter o banco ativo** → **Run workflow**. Localmente: `npm run manter-banco`.
+
+Se o projeto mesmo assim for pausado (por exemplo, se a rotina for desligada à mão), reative-o no painel do Supabase e rode a rotina uma vez.
 
 ## Modelo de segurança
 
